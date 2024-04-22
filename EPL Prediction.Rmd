@@ -1,0 +1,652 @@
+---
+title: "EPL Prediction"
+author: "Michael Cao"
+date: "2024-01-28"
+output:
+  html_document: default
+  pdf_document: default
+editor_options:
+  chunk_output_type: inline
+---
+
+```{r setup, include=FALSE, warning=FALSE ,message=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(MASS)
+library(lubridate)
+library(rpart)
+library(MASS)
+library(nnet)
+```
+
+Original data from STSCI 4950
+```{r}
+dat <- read.csv('EPL1993-2022.csv')
+head(dat)
+```
+
+[Complete record from 1992 to 2023](https://www.kaggle.com/datasets/evangower/premier-league-matches-19922022?resource=download)
+```{r}
+dat <- read.csv('premier-league-matches.csv') #also contains game week
+colnames(dat) <- c('Season', 'Week', 'Date', 'HomeTeam', 'HomeGoals', 
+                   'AwayGoals', 'AwayTeam', 'Result')
+head(dat) # dim is accurate: 3*22*21 + 28*20*19 = 12026 games
+```
+Note that Siyi's dataset seems to have an attendance variable. Additionally, 7600 observations don't seem correct if it is from 2002 to 2010 (Slide 2/11)
+
+```{r}
+length(unique(dat$HomeTeam))
+length(unique(dat$AwayTeam))
+round(table(dat$Result)/nrow(dat), 4)
+```
+
+Replicate Poisson Distribution
+```{r}
+GFGA <- function(team, graph = T)
+{
+  Home <- dat[dat$HomeTeam == team, "HomeGoals"]
+  Away <- dat[dat$AwayTeam == team, "AwayGoals"]
+  
+  GF <- c(Home, Away)
+  GA <- c(dat[dat$HomeTeam == team, "AwayGoals"],
+          dat[dat$AwayTeam == team, "HomeGoals"])
+  Total <- GF + GA
+  Diff <- abs(GF-GA)
+  
+  output <- list(GF, GA, Total, Diff)
+  
+  if (graph)
+  {
+    par(mfrow = c(2,2))
+    names <- c("Goal For", "Goal Against", "Goal Total", "Goal Difference")
+    for (i in seq_along(output))
+    {
+      x <- output[[i]]
+      obs_ct <- table(factor(x, levels = 0:max(x)))
+      barplot(obs_ct/sum(obs_ct), main = '', 
+              ylim = c(0, max(obs_ct/sum(obs_ct))*1.15), lwd =2,
+              xlab = paste0(names[i], ' (', team, ')' ), las = 1)
+      lines(dpois(0:(length(obs_ct)-1), mean(x)) ~ c(0:max(x) + 0.5),
+            col = "blue", lwd = 2)
+      # exp_prop <- exp(-mean(GF))*mean(GF)^c(0:max(GF))/factorial(0:max(GF))
+    }
+  }
+  
+  return(output)
+}
+
+# x <- GFGA("Liverpool")
+# x <- GFGA("Wolves")
+# x <- GFGA("Arsenal")
+# x <- GFGA("Manchester Utd")
+```
+
+```{r, warning=F}
+test_poisson <- function(obs_list) # as a list
+{
+  for (obs in obs_list)
+  {
+    lambda <- mean(obs) # estimate
+    obs_ct <- table(obs)
+    exp_ct <- dpois(0:(length(obs_ct)-1), lambda) * length(obs)
+    print(chisq.test(obs_ct, p = exp_ct / sum(exp_ct)))
+  }
+}
+
+test_poisson(GFGA("Liverpool"))
+test_poisson(GFGA("Wolves"))
+test_poisson(GFGA("Arsenal"))
+test_poisson(GFGA("Manchester City"))
+```
+
+Poisson distribution does not necessarily fit well for all GF and GA scenarios. In fact, it generally fits better for weaker clubs, although there are exceptions. 
+Question: why do we care about this?
+
+
+
+More Data Processing Needed
+- point aggregation
+- rank updates
+- function to aggregate GA/GF
+- win/draw frequency aggregation
+
+Eventually
+- GA difference between teams (consider home vs away)
+- performance last season
+- historic record aggregation?
+
+Potential question:
+- how to handle teams with no record? Or first game week of the season?
+
+
+
+Function to Aggregate Records up to Input Date
+```{r}
+dat$Date <- as.Date(dat$Date)
+
+ld <- aggregate(Date~Season, data = dat, FUN = max)[, 2] +1 # last day of each season
+season_decider <- function(input_date)
+{
+  if (year(input_date) < min(dat$Season)) { return(min(dat$Season))}
+  if (input_date > max(dat$Date)) { return(max(dat$Season))}
+  
+  ld0 <- ld[year(ld) == year(input_date)]
+  if (input_date > ld0) { return(year(input_date)+1)}
+  
+  return(year(input_date))
+}
+
+# return league table prior to input_date
+view_league_table <- function(input_date, more = T, round = -1) 
+{
+  season <- season_decider(input_date)
+  teams <- sort(unique(dat$HomeTeam[dat$Season==season]))
+  n <- length(teams)
+  
+  temp <- dat[dat$Date < input_date & dat$Season == season, 
+              !(names(dat) %in% c("Season", "Week", "Date"))]
+  if (input_date <= min(dat$Date)) {temp <- dat[0,]}
+  
+  wins <- rep(0, n)
+  draws <- rep(0, n)
+  losses <- rep(0, n)
+  goal_for_home <- rep(0, n)
+  goal_for_away <- rep(0, n)
+  goal_against_home <- rep(0, n)
+  goal_against_away <- rep(0, n)
+  home_match_played <- rep(0, n)
+  away_match_played <- rep(0, n)
+  points_home <-rep(0, n)
+  points_away <-rep(0, n)
+  form <- rep(0, n)
+  
+  win_draw_loss <- function(df, team)
+  {
+    hw <- sum(df$HomeTeam == team & df$Result == "H")
+    aw <- sum(df$AwayTeam == team & df$Result == "A")
+    hd <- sum(df$HomeTeam == team & df$Result == "D")
+    ad <- sum(df$AwayTeam == team & df$Result == "D")
+    hl <- sum(df$HomeTeam == team & df$Result == "A")
+    al <- sum(df$AwayTeam == team & df$Result == "H")
+    
+    return(c(hw,aw,hd,ad,hl,al))
+  }
+  
+  for (i in 1:n)
+  {
+    temp_i <- temp[temp$HomeTeam == teams[i] | temp$AwayTeam == teams[i],]
+    home_match_played <- sum(temp_i$HomeTeam == teams[i])
+    away_match_played <- sum(temp_i$AwayTeam == teams[i])
+    wdl <- win_draw_loss(temp_i, teams[i])
+    wins[i] <- sum(wdl[1:2])
+    draws[i] <- sum(wdl[3:4])
+    losses[i] <- sum(wdl[5:6])
+    points_home[i] <- 3*wdl[1] + wdl[3]
+    points_away[i] <- 3*wdl[2] + wdl[4]
+    goal_for_home[i] <- sum(temp_i$HomeGoals[temp_i$HomeTeam == teams[i]])
+    goal_for_away[i] <- sum(temp_i$AwayGoals[temp_i$AwayTeam == teams[i]])
+    goal_against_home[i] <- sum(temp_i$AwayGoals[temp_i$HomeTeam == teams[i]])
+    goal_against_away[i] <- sum(temp_i$HomeGoals[temp_i$AwayTeam == teams[i]])
+    
+    temp_form <- tail(temp_i, 5)
+    if (nrow(temp_form)!=0)
+    {
+      wdl <- win_draw_loss(temp_form, teams[i])
+      form[i] <- (3*wdl[1] + wdl[2])/nrow(temp_form)
+    }
+  }
+  
+  match_played <- home_match_played + away_match_played
+  goal_for <- goal_for_home + goal_for_away
+  goal_against <- goal_against_home + goal_against_away
+  points <- 3*wins + draws
+  
+  league_table <- data.frame("Club" = teams,
+                             "MP" = match_played,
+                             "W" = wins,
+                             "D" = draws,
+                             "L" = losses,
+                             "GF" = goal_for,
+                             "GA" = goal_against,
+                             "GD" = goal_for - goal_against,
+                             "Pts" = points_home + points_away, 
+                             "Form" = form, # define numerically
+                             "PtsPG" = (points_home + points_away)/max(1, match_played), 
+                             "PtsPHG" = points_home/max(1, home_match_played),
+                             "PtsPAG" = points_away/max(1, away_match_played),
+                             "GFPG" = goal_for/max(1, match_played),
+                             "GAPG" = goal_against/max(1, match_played),
+                             "GFHPG" = goal_for_home/max(1, home_match_played),
+                             "GFAPG" = goal_for_away/max(1, away_match_played),
+                             "GAHPG" = goal_against_home/max(1, home_match_played),
+                             "GAAPG" = goal_against_away/max(1, away_match_played))
+  # Note: max(1, match_played) used to handle division by 0
+  #       x/0 = Inf, 0/0 = NaN, specifically, this occurs during the first weeks
+  #       better ways to handle this??
+                              
+  league_table <- league_table[with(league_table, 
+                                    order(Pts, GD, GF, W, decreasing = T)), ]
+  rownames(league_table) <- 1:n
+  
+  if (round!=-1) { league_table[, -1] <- round(league_table[, -1], round)}
+  if (more) { return(league_table)}
+  
+  return(league_table[, 1:10])
+}
+```
+
+
+Example Function Calls
+```{r}
+view_league_table("2004-05-15", T, 2)
+view_league_table("2023-05-29", F)
+view_league_table("1992-08-15")
+```
+
+• difference of the ability of attack measured by the sample mean of “GF” between two teams 
+• difference of the ability of defense measured by the sample mean of “GA” between two teams
+• difference of the ability of attack measured by the sample mean of team’s “GF” at Home and the sample mean of opponent’s “GF” Away
+• difference of the ability of attack measured by the sample mean of team’s “GA” at Home and the sample mean of opponent’s “GA” Away
+• difference of total points gained for the two teams till the game date in the same season.
+• rank difference of two teams till the game date in the same season.
+.............DONE......................
+• difference of total points gained for the two teams in last season. (???)
+• rank difference of two teams in last season. (???)
+• relative frequency of Draw in the historical game records of these two teams 
+• relative frequency of Win in the historical game records of the home team against opponent
+• relative frequency of Draw in the historical game records when home team was Home.
+• relative frequency of Win in the historical game records when home team was Home.
+
+
+Questions:
+1) Wouldn't including the difference in both rank and points be repetitive since they are highly dependent? Additionally, it might be better to use points only, as it would solve the issue of high volatility in rank at the beginning of the season.
+2) Issue with difference in points/rank from the prev season: what value to use for promoted teams? Repeatedly retrieving this info would also be computationally expensive.
+3) H2H record for historical current season only? If the latter, sample size is very small. Otherwise, it is hardly relevant.
+```{r}
+n <- nrow(dat)
+dat_new <- dat
+
+gf_diff <- rep(0, n)
+ga_diff <- rep(0, n)
+gfha_diff <- rep(0, n)
+gaha_diff <- rep(0, n)
+points_diff <- rep(0, n)
+rank_diff <- rep(0, n)
+form_diff <- rep(0, n)
+points_diff <- rep(0, n)
+# rank_diff_ls <- rep(0, n) # for newly promoted teams, rank = length(teams)?
+
+
+start <- proc.time()
+
+for (i in 1:n)
+{
+  if (dat_new$Date[i] != dat_new$Date[i-1] || i==1)
+  {
+    lt <- view_league_table(dat_new$Date[i])
+  }
+  
+  home_idx <- which(lt$Club == dat$HomeTeam[i]) 
+  away_idx <- which(lt$Club == dat$AwayTeam[i]) 
+  diff <- lt[home_idx, c("GFPG", "GAPG", "GFHPG", "GAHPG", "PtsPHG", "Form")] - 
+          lt[away_idx, c("GFPG", "GAPG", "GFAPG", "GAAPG", "PtsPAG", "Form")]
+  gf_diff[i] <- diff$GFPG
+  ga_diff[i] <- diff$GAPG
+  gfha_diff[i] <- diff$GFHPG
+  gaha_diff[i] <- diff$GAHPG
+  points_diff[i] <- diff$PtsPHG
+  form_diff[i] <- diff$Form
+  rank_diff[i] <- away_idx - home_idx
+}
+
+dat_new[c("GFDiff", "GADiff", "GFHADiff", "GAHADiff", "PtsDiff",
+          "RankDiff", "FormDiff")] <- list(gf_diff, ga_diff, gfha_diff, gaha_diff,
+                                           points_diff, rank_diff, form_diff)
+
+# potentially include more columns, such as draw percentage...
+
+
+# append last season rank
+dat_new$RankDiffLS <- NA
+for (i in 1:(length(ld)-1))
+{
+  rank_ls <- view_league_table(ld[i])$Club
+  temp <- dat_new[dat_new$Season==year(ld[i])+1, ]
+  home_rank_ls <- match(temp$HomeTeam, rank_ls)
+  home_rank_ls[is.na(home_rank_ls)] <- max(home_rank_ls, na.rm = T)+1
+  away_rank_ls <- match(temp$AwayTeam, rank_ls)
+  away_rank_ls[is.na(away_rank_ls)] <- max(away_rank_ls, na.rm = T)+1
+  dat_new$RankDiffLS[dat_new$Season==year(ld[i])+1] <- home_rank_ls - away_rank_ls
+}
+
+print(proc.time() - start)
+```
+When testing the code for last season's rank, I noticed Middlesbrough was deducted 3 points in the 1996-97 season, which caused them to go from 14th to 19th and eventually relegated. Portsmouth too, has been deducted 9 points in 2009-10, also relegating that season.
+
+
+Comment: when using 'rank' for prediction, we need to keep in mind that at the start of each season when only a few games have been played, rank is not a reliable predictor - for example, losing the very first game might place you at the last place. Same issue is present in GA/GF columns.
+```{r}
+# View(dat_new)
+head(dat_new)
+tail(dat_new)
+```
+
+
+Classification Tree
+1) How to interpret summary output of the classification tree? 
+2) Is this the right way to train? Seems like the home/away team name columns are just used as categorical predictors with 20/22 factor levels?
+3) How would the model continuously train/predict? For example, do we retrain the data for every unique date and then predict the games on the next date? This would be very computationally expensive.
+```{r}
+start <- proc.time()
+predictors <- c("HomeTeam", "AwayTeam", 
+                "GFDiff", "GADiff", 
+                "GFHADiff", "GAHADiff", "PtsDiff", "FormDiff", "RankDiffLS")
+tree_model <- rpart(Result ~ ., data = dat_new[(463):(924-231), c("Result", predictors)],
+                    method = 'class')
+# tree_model <- rpart(Result ~ ., data = dat_new[463:nrow(dat_new), c("Result", predictors)],
+#                     method = 'class')
+print(proc.time() - start)
+# summary(tree_model)
+predictions <- predict(tree_model, 
+                       # dat_new[(463):(924-231), c("Result", predictors)], 
+                       type = "class")
+actual <- dat_new$Result[(463):(924-231)]
+# actual <- dat_new$Result[463:nrow(dat_new)]
+mean(predictions == actual)
+# mean(predictions[1:231] == actual[1:231])
+# mean(predictions[232:462] == actual[232:462])
+# use a dataframe to compare accuracy after training after n weeks. each row is a season
+```
+Observations: for the first season, prediction accuracy is 71.43% for second half of the season; this drops to 66.48% for after 10 matchdays, and 62.34% for the entire season.
+1) Using PtsPG as a predictor has slightly better performance compared to just Pts.
+2) Surprisingly, incorporating form as a predictor has little effect on accuracy.
+
+
+Method 1: Train model with only records from current season; model updated at every unique match date (training set increases in size), and predict all games on the next match date
+```{r}
+prediction_list <- list()
+actual_list <- list()
+accuracy_vec <- c()
+
+predictors <- c(#"HomeTeam", "AwayTeam", 
+                "GFDiff", "GADiff", 
+                "GFHADiff", "GAHADiff", "PtsDiff", "FormDiff", "RankDiffLS")
+
+seasons <- unique(dat_new$Season)
+for (i in 1:(length(seasons)-1))
+{
+  temp <- dat_new[dat_new$Season == seasons[i+1],]
+  pred_season <- rep(NA, nrow(temp))
+  dates <- unique(temp$Date)
+  teams_ct <- length(unique(temp$HomeTeam))
+  
+  for (j in 2:(length(dates))) 
+  {
+    # if (dates[j] > temp$Date[teams_ct/2])
+    # {
+      train.idx <- which(temp$Date < dates[j])
+      tree_model <- rpart(Result ~ ., 
+                          data = temp[train.idx, c("Result", predictors)],
+                          method = 'class')
+      pred.idx <- which(temp$Date == dates[j])
+      pred_season[pred.idx] <- as.character(predict(tree_model, 
+                                                    temp[pred.idx, c("Result", predictors)],
+                                                    type = "class"))
+    # }
+  }
+
+  prediction_list[[i]] <- na.omit(pred_season)
+  # actual_list[[i]] <- temp$Result[(teams_ct/2 + 1):nrow(temp)]
+  actual_list[[i]] <- temp$Result[temp$Date > dates[1]]
+  accuracy_vec[i] <- mean(prediction_list[[i]] == actual_list[[i]])
+  print(paste(seasons[i+1], "season done..."))
+}
+
+accuracy_ovr <- mean(unlist(prediction_list) == unlist(actual_list))
+```
+Note: This is very hard to implement with team names in consideration, since HomeTeam and AwayTeam columns are treated as separated factors, so the algorithm can only run after all the teams have had at least one home game and one away game. Additionally, using these two columns as predictors significantly impacts the training speed of classification tree (takes over 3 minutes to run the above code for just the first season with 39.09% accuracy), since each is treated as a categorical variable with 20/22 factor levels, whereas the other predictors are all numerical. However, incorporating the team names does improve the accuracy by a few percentage points.
+
+```{r}
+head(prediction_list[[3]], 20)
+```
+Another potential problem is the first predictions of each season is very single-patterned, meaning it is not until after 50 games would the prediction produce some kind of variation in its prediction outputs.
+
+```{r}
+plot(1:(length(seasons)-1), accuracy_vec, 
+     type = 'o', ylim = c(0, 0.6), xaxt = "n", 
+     xlab = '', ylab = "prediction accuracy")
+     # main = 'prediction accuracy over seasons')
+axis(1, at = 1:(length(seasons)-1), labels = seasons[-1], 
+     las = 2, cex.axis = 0.8)
+abline(h = accuracy_ovr, col = "red",
+       lwd = 1.5, lty = 2)
+abline(h = 1/3, col = "blue", lwd = 1.5, lty = 2)
+legend("bottomright", legend = c("Tree", "Random"), 
+       col = c("red", "blue"), lty = 2, lwd = 3, bty = "n")
+```
+Without using team names, using a moving train-test approach, the classification tree method achieves an overall accuracy of 44.60% across all seasons (minus the first season and the games played on first matchday of each season).
+
+
+Method 2: Train model with records from the last 'prev' match dates, regardless of season; model updated at every unique match date (training set stable in size), and predict all games on the next match date
+```{r}
+# sapply(unique(dat$Season), function(season) {
+#   length(unique(dat$Date[dat$Season == season]))
+# })
+
+prediction_list <- list()
+actual_list <- list()
+accuracy_vec <- c()
+
+predictors <- c(#"HomeTeam", "AwayTeam", 
+                "GFDiff", "GADiff", 
+                "GFHADiff", "GAHADiff", "PtsDiff", "FormDiff", "RankDiffLS")
+
+seasons <- unique(dat_new$Season)
+dates <- unique(dat_new$Date)
+pred_vec <- rep(NA, nrow(dat_new))
+
+prev = 100
+for (i in (prev+1):length(dates))
+{
+  # temp <- dat_new[dat_new$Date <= dates[i] & dat_new$Date >= dates[i-50], ]
+  train.idx <- which(dat_new$Date < dates[i] & dat_new$Date >= dates[i-prev])
+  tree_model <- rpart(Result ~ ., 
+                      data = dat_new[train.idx, c("Result", predictors)],
+                      method = 'class')
+  pred.idx <- which(dat_new$Date == dates[i])
+  pred_vec[pred.idx] <- as.character(predict(tree_model, 
+                                             dat_new[pred.idx, c("Result", predictors)],
+                                             type = "class"))
+  
+  if (i%%100==0)
+  {
+    print(paste("done up to", dates[i]))
+  }
+  
+}
+
+# for (i in 1:length(seasons))
+# {
+#   prediction_list[[i]] <- pred_vec[dat_new$Season == seasons[i]]
+#   actual_list[[i]] <- dat_new$Result[dat_new$Season == seasons[i]]
+# }
+prediction_list <- lapply(seasons, function(season) pred_vec[dat_new$Season == season])
+actual_list <- lapply(seasons, function(season) dat_new$Result[dat_new$Season == season])
+accuracy_vec_tree <- mapply(function(pred, actual) mean(pred == actual), 
+                       prediction_list, actual_list)
+
+pred_vec <- na.omit(pred_vec)
+accuracy_ovr_tree <- mean(pred_vec == tail(dat_new$Result, length(pred_vec)))
+```
+prev = 5, accuracy_ovr = 0.4070
+prev = 10, accuracy_ovr = 0.4360
+prev = 20, accuracy_ovr = 0.4267
+prev = 50, accuracy_ovr = 0.4337
+prev = 100, accuracy_ovr = 0.4594
+prev = 150, accuracy_ovr = 0.4736
+prev = 200, accuracy_ovr = 0.4853
+prev = 250, accuracy_ovr = 0.4928
+prev = 300, accuracy_ovr = 0.5009
+prev = 350, accuracy_ovr = 0.4999
+prev = 400, accuracy_ovr = 0.5023
+
+Observation: as prev increases (when the fixed size of the training set gets larger), the overall accuracy generally increases.
+
+```{r}
+plot(1:(length(seasons)-1), accuracy_vec_tree[-1], 
+     type = 'o', ylim = c(0, 0.6), xaxt = "n", 
+     xlab = '', ylab = "prediction accuracy")
+     # main = 'prediction accuracy over seasons')
+axis(1, at = 1:(length(seasons)-1), labels = seasons[-1], 
+     las = 2, cex.axis = 0.8)
+abline(h = accuracy_ovr_tree, col = "red",
+       lwd = 1.5, lty = 2)
+abline(h = 1/3, col = "blue", lwd = 1.5, lty = 2)
+legend("bottomright", legend = c("Tree", "Random"), 
+       col = c("red", "blue"), lty = 2, lwd = 3, bty = "n")
+```
+
+
+Multinomial Logistic Regression (Ordinal)
+```{r}
+dat_new$ResultF <- factor(dat_new$Result, 
+                         ordered = TRUE, 
+                         levels = c("A", "D", "H"))
+
+ordered_model <- polr(ResultF ~ ., data = dat_new[, c('ResultF', predictors)])
+# summary(ordered_model)
+
+predictions_prob <- predict(ordered_model, type = "prob")
+predictions <- predict(ordered_model, type = "class")
+mean(as.character(predictions) == dat_new$Result[-(1:462)])
+```
+The multinomial logistic regression is not suitable here when Result is treated as an ordinal categorical variable. Even without using the train-test method, the training accuracy on the entire dataset is only 51.44%. 
+```{r}
+table(predictions)
+head(predictions_prob)
+```
+The major problem is that the probability of a draw is always lower than that of a home or away win that it was never predicted even once. Perhaps this only become a problem if we treat Result as a ordered factor.
+
+Running model updates - similar to method 2 in classification tree
+```{r}
+prediction_list <- list()
+actual_list <- list()
+accuracy_vec <- c()
+
+seasons <- unique(dat_new$Season)
+dates <- unique(dat_new$Date)
+pred_vec <- rep(NA, nrow(dat_new))
+predictors <- c(#"HomeTeam", "AwayTeam", 
+                "RankDiffLS",
+                "GFDiff", "GADiff", 
+                "GFHADiff", "GAHADiff", "PtsDiff", "FormDiff")
+
+prev = 100
+for (i in (prev+1):length(dates))
+{
+  if (i - prev > 119)
+  {
+    train.idx <- which(dat_new$Date < dates[i] & dat_new$Date >= dates[i-prev])
+    ordered_model <- polr(ResultF ~ ., 
+                          data = dat_new[train.idx, c('ResultF', predictors)])
+    pred.idx <- which(dat_new$Date == dates[i])
+    pred_vec[pred.idx] <- as.character(predict(ordered_model, 
+                                               dat_new[pred.idx, c("ResultF", predictors)],
+                                               type = "class"))
+    
+  }
+  
+  if (i%%100==0)
+  {
+    print(paste("done up to", dates[i]))
+  }
+  
+}
+
+prediction_list <- lapply(seasons, function(season) pred_vec[dat_new$Season == season])
+actual_list <- lapply(seasons, function(season) dat_new$Result[dat_new$Season == season])
+accuracy_vec_mn <- mapply(function(pred, actual) mean(pred == actual), 
+                       prediction_list, actual_list)
+
+pred_vec <- na.omit(pred_vec)
+accuracy_ovr_mn <- mean(pred_vec == tail(dat_new$Result, length(pred_vec)))
+```
+Without RankDiffLS (due to NA in 1st season),
+prev = 20, accuracy_ovr = 0.4707
+prev = 50, accuracy_ovr = 0.4899
+prev = 100, accuracy_ovr = 0.4969
+prev = 150, accuracy_ovr = 0.4957
+prev = 200, accuracy_ovr = 0.4984
+prev = 250, accuracy_ovr = 0.5021
+prev = 300, accuracy_ovr = 0.5027
+prev = 350, accuracy_ovr = 0.5040
+prev = 400, accuracy_ovr = 0.5051
+
+With RankDiffLS,
+prev = 20, accuracy_ovr = 0.4817
+prev = 50, accuracy_ovr = 0.4983
+prev = 100, accuracy_ovr = 0.5104
+prev = 150, accuracy_ovr = 0.5107
+prev = 200, accuracy_ovr = 0.5168
+prev = 250, accuracy_ovr = 0.5170
+prev = 300, accuracy_ovr = 0.5173
+prev = 350, accuracy_ovr = 0.5172
+prev = 400, accuracy_ovr = 0.5190
+
+```{r}
+table(unlist(prediction_list))
+round(prop.table(table(unlist(prediction_list))),4)
+```
+Another observation here is that as 'prev' increase, the number of predicted draw gradually decreases to 0. Perhaps this explains why there is a slight increase in the accuracy as prev increases - it benefits accuracy to guess a home win.
+
+```{r}
+plot(1:(length(seasons)-1), accuracy_vec_mn[-1], 
+     type = 'o', ylim = c(0, 0.6), xaxt = "n", 
+     xlab = '', ylab = "prediction accuracy", 
+     col = "red", lwd = 1.5)
+     # main = 'prediction accuracy over seasons')
+lines(1:(length(seasons)-1), accuracy_vec_tree[-1], 
+      type = 'o', col = "purple", lwd = 1.5)
+axis(1, at = 1:(length(seasons)-1), labels = seasons[-1], 
+     las = 2, cex.axis = 0.8)
+abline(h = accuracy_ovr_mn, col = "red",
+       lwd = 1.5, lty = 2)
+abline(h = accuracy_ovr_tree, col = "purple",
+       lwd = 1.5, lty = 2)
+abline(h = 1/3, col = "blue", lwd = 1.5, lty = 2)
+legend("bottomright", legend = c("Multinom", "Tree", "Random"), 
+       col = c("red", "purple", "blue"), lty = 2, lwd = 3, bty = "n")
+```
+Overall, multinomial logistic (when treating Result as an ordinal variable) produces a higher accuracy than Tree (both for prev = 100 in graph).
+
+
+Multinomial Logistic Regression (Regular)
+```{r}
+unordered_model <- multinom(Result ~ ., data = dat_new[, c('Result', predictors)])
+# summary(unordered_model)
+
+predictions_prob <- predict(unordered_model, type = "prob")
+predictions <- predict(unordered_model, type = "class")
+mean(as.character(predictions) == dat_new$Result[-(1:462)])
+```
+There is almost no difference in the training accuracy - still very low. The challenge remains for draw predictions.
+
+
+
+Linear Model to Predict Home/Away Goals
+- What variables did Prof. Booth previously include? 
+- what modeling technique? shrinkage as in ridge/lasso?
+```{r}
+
+```
+
+Random Forest and Other Models
+```{r}
+
+```
+
+
+Also... think about the fact that Opta predictions and others all have percentages for each category, where the chance of a draw is almost never predicted to be higher than a home win or an away win. In their practice, they would almost never predict a draw if only based on higher percentage.
+
+[Opta EPL Season Simulation](https://theanalyst.com/na/2023/08/opta-football-predictions/)
+[Opta EPL Match Predictions](https://theanalyst.com/na/2024/02/premier-league-match-predictions/)

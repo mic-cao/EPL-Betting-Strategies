@@ -1,0 +1,321 @@
+﻿Season,Week,HomeTeam,AwayTeam,pH,pD,pA
+2024,1,Burnley,Man City,0.137,0.228,0.635
+2024,1,Arsenal,Nott'm Forest,0.668,0.21,0.122
+2024,1,Bournemouth,West Ham,0.288,0.288,0.424
+2024,1,Brighton,Luton,0.564,0.247,0.189
+2024,1,Everton,Fulham,0.352,0.299,0.349
+2024,1,Sheffield United,Crystal Palace,0.338,0.308,0.354
+2024,1,Newcastle,Aston Villa,0.422,0.285,0.293
+2024,1,Brentford,Tottenham,0.368,0.285,0.347
+2024,1,Chelsea,Liverpool,0.3,0.286,0.414
+2024,1,Man United,Wolves,0.522,0.274,0.204
+2024,2,Nott'm Forest,Sheffield United,0.396,0.304,0.3
+2024,2,Fulham,Brentford,0.357,0.294,0.349
+2024,2,Liverpool,Bournemouth,0.758,0.166,0.076
+2024,2,Wolves,Brighton,0.324,0.302,0.374
+2024,2,Tottenham,Man United,0.394,0.282,0.324
+2024,2,Man City,Newcastle,0.69,0.199,0.111
+2024,2,Aston Villa,Everton,0.459,0.285,0.256
+2024,2,West Ham,Chelsea,0.34,0.294,0.366
+2024,2,Crystal Palace,Arsenal,0.263,0.285,0.452
+2024,3,Chelsea,Luton,0.61,0.231,0.159
+2024,3,Bournemouth,Tottenham,0.209,0.26,0.531
+2024,3,Arsenal,Fulham,0.55,0.26,0.19
+2024,3,Brentford,Crystal Palace,0.468,0.286,0.246
+2024,3,Everton,Wolves,0.378,0.301,0.321
+2024,3,Man United,Nott'm Forest,0.615,0.235,0.15
+2024,3,Brighton,West Ham,0.423,0.286,0.291
+2024,3,Burnley,Aston Villa,0.318,0.295,0.387
+2024,3,Sheffield United,Man City,0.124,0.225,0.651
+2024,3,Newcastle,Liverpool,0.267,0.278,0.455
+2024,4,Luton,West Ham,0.305,0.275,0.42
+2024,4,Sheffield United,Everton,0.349,0.307,0.344
+2024,4,Brentford,Bournemouth,0.555,0.259,0.186
+2024,4,Burnley,Tottenham,0.25,0.282,0.468
+2024,4,Chelsea,Nott'm Forest,0.579,0.249,0.172
+2024,4,Man City,Fulham,0.718,0.188,0.094
+2024,4,Brighton,Newcastle,0.399,0.289,0.312
+2024,4,Crystal Palace,Wolves,0.39,0.305,0.305
+2024,4,Liverpool,Aston Villa,0.598,0.24,0.162
+2024,4,Arsenal,Man United,0.436,0.281,0.283
+2024,5,Wolves,Liverpool,0.201,0.266,0.533
+2024,5,Aston Villa,Crystal Palace,0.441,0.29,0.269
+2024,5,Fulham,Luton,0.506,0.266,0.228
+2024,5,Man United,Brighton,0.464,0.279,0.257
+2024,5,Tottenham,Sheffield United,0.589,0.249,0.162
+2024,5,West Ham,Man City,0.166,0.239,0.595
+2024,5,Newcastle,Brentford,0.398,0.29,0.312
+2024,5,Bournemouth,Chelsea,0.24,0.281,0.479
+2024,5,Everton,Arsenal,0.224,0.271,0.505
+2024,5,Nott'm Forest,Burnley,0.407,0.294,0.299
+2024,6,Crystal Palace,Fulham,0.374,0.299,0.327
+2024,6,Luton,Wolves,0.341,0.294,0.365
+2024,6,Man City,Nott'm Forest,0.808,0.137,0.055
+2024,6,Brentford,Everton,0.501,0.274,0.225
+2024,6,Burnley,Man United,0.249,0.283,0.468
+2024,6,Arsenal,Tottenham,0.476,0.267,0.257
+2024,6,Brighton,Bournemouth,0.565,0.253,0.182
+2024,6,Chelsea,Aston Villa,0.453,0.285,0.262
+2024,6,Liverpool,West Ham,0.616,0.231,0.153
+2024,6,Sheffield United,Newcastle,0.275,0.296,0.429
+2024,7,Aston Villa,Brighton,0.377,0.29,0.333
+2024,7,Bournemouth,Arsenal,0.184,0.252,0.564
+2024,7,Everton,Luton,0.457,0.278,0.265
+2024,7,Man United,Crystal Palace,0.513,0.274,0.213
+2024,7,Newcastle,Burnley,0.525,0.271,0.204
+2024,7,West Ham,Sheffield United,0.528,0.271,0.201
+2024,7,Wolves,Man City,0.144,0.236,0.62
+2024,7,Tottenham,Liverpool,0.292,0.269,0.439
+2024,7,Nott'm Forest,Brentford,0.296,0.288,0.416
+2024,7,Fulham,Chelsea,0.304,0.299,0.397
+2024,8,Luton,Tottenham,0.2,0.243,0.557
+2024,8,Burnley,Chelsea,0.257,0.292,0.451
+2024,8,Everton,Bournemouth,0.447,0.29,0.263
+2024,8,Fulham,Sheffield United,0.471,0.29,0.239
+2024,8,Man United,Brentford,0.453,0.281,0.266
+2024,8,Crystal Palace,Nott'm Forest,0.421,0.292,0.287
+2024,8,Brighton,Liverpool,0.252,0.27,0.478
+2024,8,West Ham,Newcastle,0.359,0.286,0.355
+2024,8,Wolves,Aston Villa,0.323,0.297,0.38
+2024,8,Arsenal,Man City,0.261,0.274,0.465
+2024,9,Liverpool,Everton,0.67,0.208,0.122
+2024,9,Bournemouth,Wolves,0.31,0.3,0.39
+2024,9,Brentford,Burnley,0.511,0.274,0.215
+2024,9,Man City,Brighton,0.688,0.201,0.111
+2024,9,Newcastle,Crystal Palace,0.473,0.285,0.242
+2024,9,Nott'm Forest,Luton,0.457,0.28,0.263
+2024,9,Chelsea,Arsenal,0.347,0.29,0.363
+2024,9,Sheffield United,Man United,0.205,0.271,0.524
+2024,9,Aston Villa,West Ham,0.422,0.281,0.297
+2024,9,Tottenham,Fulham,0.518,0.265,0.217
+2024,10,Crystal Palace,Tottenham,0.269,0.284,0.447
+2024,10,Chelsea,Brentford,0.413,0.295,0.292
+2024,10,Arsenal,Sheffield United,0.671,0.214,0.115
+2024,10,Bournemouth,Burnley,0.36,0.3,0.34
+2024,10,Wolves,Newcastle,0.305,0.296,0.399
+2024,10,West Ham,Everton,0.472,0.279,0.249
+2024,10,Aston Villa,Luton,0.591,0.239,0.17
+2024,10,Brighton,Fulham,0.462,0.282,0.256
+2024,10,Liverpool,Nott'm Forest,0.708,0.191,0.101
+2024,10,Man United,Man City,0.225,0.267,0.508
+2024,11,Fulham,Man United,0.294,0.291,0.415
+2024,11,Brentford,West Ham,0.451,0.282,0.267
+2024,11,Burnley,Crystal Palace,0.335,0.307,0.358
+2024,11,Everton,Brighton,0.305,0.292,0.403
+2024,11,Man City,Bournemouth,0.846,0.113,0.041
+2024,11,Sheffield United,Wolves,0.292,0.301,0.407
+2024,11,Newcastle,Arsenal,0.321,0.284,0.395
+2024,11,Nott'm Forest,Aston Villa,0.291,0.288,0.421
+2024,11,Luton,Liverpool,0.126,0.209,0.665
+2024,11,Tottenham,Chelsea,0.427,0.283,0.29
+2024,12,Wolves,Tottenham,0.274,0.284,0.442
+2024,12,Arsenal,Burnley,0.636,0.228,0.136
+2024,12,Crystal Palace,Everton,0.399,0.298,0.303
+2024,12,Man United,Luton,0.618,0.233,0.149
+2024,12,Bournemouth,Newcastle,0.221,0.271,0.508
+2024,12,Aston Villa,Fulham,0.458,0.284,0.258
+2024,12,Brighton,Sheffield United,0.584,0.252,0.164
+2024,12,Liverpool,Brentford,0.557,0.254,0.189
+2024,12,West Ham,Nott'm Forest,0.483,0.276,0.241
+2024,12,Chelsea,Man City,0.227,0.272,0.501
+2024,13,Man City,Liverpool,0.515,0.26,0.225
+2024,13,Burnley,West Ham,0.28,0.288,0.432
+2024,13,Luton,Crystal Palace,0.332,0.3,0.368
+2024,13,Newcastle,Chelsea,0.369,0.294,0.337
+2024,13,Nott'm Forest,Brighton,0.304,0.285,0.411
+2024,13,Sheffield United,Bournemouth,0.361,0.3,0.339
+2024,13,Brentford,Arsenal,0.318,0.288,0.394
+2024,13,Tottenham,Aston Villa,0.481,0.268,0.251
+2024,13,Everton,Man United,0.271,0.287,0.442
+2024,13,Fulham,Wolves,0.386,0.301,0.313
+2024,14,Arsenal,Wolves,0.571,0.255,0.174
+2024,14,Brentford,Luton,0.547,0.261,0.192
+2024,14,Burnley,Sheffield United,0.42,0.3,0.28
+2024,14,Nott'm Forest,Everton,0.388,0.293,0.319
+2024,14,Newcastle,Man United,0.365,0.291,0.344
+2024,14,Bournemouth,Aston Villa,0.242,0.276,0.482
+2024,14,Chelsea,Brighton,0.437,0.285,0.278
+2024,14,Liverpool,Fulham,0.636,0.227,0.137
+2024,14,West Ham,Crystal Palace,0.453,0.287,0.26
+2024,14,Man City,Tottenham,0.67,0.204,0.126
+2024,15,Wolves,Burnley,0.425,0.298,0.277
+2024,15,Luton,Arsenal,0.188,0.251,0.561
+2024,15,Brighton,Brentford,0.389,0.288,0.323
+2024,15,Crystal Palace,Bournemouth,0.463,0.288,0.249
+2024,15,Fulham,Nott'm Forest,0.432,0.293,0.275
+2024,15,Sheffield United,Liverpool,0.106,0.203,0.691
+2024,15,Aston Villa,Man City,0.184,0.248,0.568
+2024,15,Man United,Chelsea,0.412,0.29,0.298
+2024,15,Everton,Newcastle,0.294,0.292,0.414
+2024,15,Tottenham,West Ham,0.514,0.259,0.227
+2024,16,Crystal Palace,Liverpool,0.19,0.222,0.588
+2024,16,Brighton,Burnley,0.616,0.203,0.181
+2024,16,Man United,Bournemouth,0.58,0.214,0.206
+2024,16,Sheffield United,Brentford,0.236,0.242,0.522
+2024,16,Wolves,Nott'm Forest,0.51,0.25,0.24
+2024,16,Aston Villa,Arsenal,0.3,0.252,0.448
+2024,16,Everton,Chelsea,0.284,0.292,0.424
+2024,16,Fulham,West Ham,0.365,0.292,0.343
+2024,16,Luton,Man City,0.091,0.14,0.769
+2024,16,Tottenham,Newcastle,0.453,0.274,0.273
+2024,17,Nott'm Forest,Tottenham,0.232,0.266,0.502
+2024,17,Chelsea,Sheffield United,0.622,0.24,0.138
+2024,17,Man City,Crystal Palace,0.732,0.182,0.086
+2024,17,Newcastle,Fulham,0.456,0.28,0.264
+2024,17,Burnley,Everton,0.35,0.299,0.351
+2024,17,Arsenal,Brighton,0.535,0.255,0.21
+2024,17,Brentford,Aston Villa,0.401,0.289,0.31
+2024,17,West Ham,Wolves,0.455,0.284,0.261
+2024,17,Liverpool,Man United,0.537,0.256,0.207
+2024,18,Crystal Palace,Brighton,0.327,0.292,0.381
+2024,18,Aston Villa,Sheffield United,0.623,0.237,0.14
+2024,18,West Ham,Man United,0.342,0.286,0.372
+2024,18,Fulham,Burnley,0.472,0.286,0.242
+2024,18,Luton,Newcastle,0.276,0.277,0.447
+2024,18,Nott'm Forest,Bournemouth,0.418,0.292,0.29
+2024,18,Tottenham,Everton,0.562,0.251,0.187
+2024,18,Liverpool,Arsenal,0.474,0.27,0.256
+2024,18,Wolves,Chelsea,0.296,0.293,0.411
+2024,19,Newcastle,Nott'm Forest,0.557,0.259,0.184
+2024,19,Bournemouth,Fulham,0.314,0.291,0.395
+2024,19,Sheffield United,Luton,0.292,0.296,0.412
+2024,19,Burnley,Liverpool,0.163,0.247,0.59
+2024,19,Man United,Aston Villa,0.441,0.284,0.275
+2024,19,Brentford,Wolves,0.471,0.285,0.244
+2024,19,Chelsea,Crystal Palace,0.497,0.281,0.222
+2024,19,Everton,Man City,0.145,0.234,0.621
+2024,19,Brighton,Tottenham,0.356,0.281,0.363
+2024,19,Arsenal,West Ham,0.571,0.244,0.185
+2024,20,Luton,Chelsea,0.264,0.28,0.456
+2024,20,Aston Villa,Burnley,0.54,0.267,0.193
+2024,20,Crystal Palace,Brentford,0.33,0.299,0.371
+2024,20,Man City,Sheffield United,0.858,0.108,0.034
+2024,20,Wolves,Everton,0.391,0.299,0.31
+2024,20,Nott'm Forest,Man United,0.256,0.282,0.462
+2024,20,Fulham,Arsenal,0.244,0.276,0.48
+2024,20,Tottenham,Bournemouth,0.659,0.21,0.131
+2024,20,Liverpool,Newcastle,0.577,0.247,0.176
+2024,20,West Ham,Brighton,0.401,0.284,0.315
+2024,21,Burnley,Luton,0.385,0.289,0.326
+2024,21,Chelsea,Fulham,0.497,0.277,0.226
+2024,21,Newcastle,Man City,0.194,0.254,0.552
+2024,21,Everton,Aston Villa,0.306,0.292,0.402
+2024,21,Man United,Tottenham,0.403,0.282,0.315
+2024,21,Arsenal,Crystal Palace,0.58,0.249,0.171
+2024,21,Brentford,Nott'm Forest,0.51,0.27,0.22
+2024,21,Sheffield United,West Ham,0.211,0.274,0.515
+2024,21,Bournemouth,Liverpool,0.156,0.232,0.612
+2024,21,Brighton,Wolves,0.466,0.286,0.248
+2024,22,Nott'm Forest,Arsenal,0.197,0.258,0.545
+2024,22,Fulham,Everton,0.418,0.294,0.288
+2024,22,Luton,Brighton,0.296,0.281,0.423
+2024,22,Crystal Palace,Sheffield United,0.516,0.278,0.206
+2024,22,Aston Villa,Newcastle,0.425,0.284,0.291
+2024,22,Man City,Burnley,0.774,0.158,0.068
+2024,22,Tottenham,Brentford,0.516,0.26,0.224
+2024,22,Liverpool,Chelsea,0.549,0.256,0.195
+2024,22,West Ham,Bournemouth,0.549,0.253,0.198
+2024,22,Wolves,Man United,0.305,0.298,0.397
+2024,23,Everton,Tottenham,0.266,0.282,0.452
+2024,23,Brighton,Crystal Palace,0.472,0.28,0.248
+2024,23,Burnley,Fulham,0.337,0.299,0.364
+2024,23,Newcastle,Luton,0.553,0.248,0.199
+2024,23,Sheffield United,Aston Villa,0.196,0.266,0.538
+2024,23,Bournemouth,Nott'm Forest,0.412,0.284,0.304
+2024,23,Chelsea,Wolves,0.486,0.283,0.231
+2024,23,Man United,West Ham,0.458,0.278,0.264
+2024,23,Arsenal,Liverpool,0.359,0.282,0.359
+2024,23,Brentford,Man City,0.18,0.248,0.572
+2024,24,Man City,Everton,0.743,0.175,0.082
+2024,24,Fulham,Bournemouth,0.46,0.281,0.259
+2024,24,Liverpool,Burnley,0.711,0.194,0.095
+2024,24,Luton,Sheffield United,0.613,0.234,0.153
+2024,24,Tottenham,Brighton,0.497,0.266,0.237
+2024,24,Wolves,Brentford,0.354,0.296,0.35
+2024,24,Nott'm Forest,Newcastle,0.278,0.277,0.445
+2024,24,West Ham,Arsenal,0.286,0.279,0.435
+2024,24,Aston Villa,Man United,0.39,0.289,0.321
+2024,24,Crystal Palace,Chelsea,0.304,0.292,0.404
+2024,25,Brentford,Liverpool,0.231,0.266,0.503
+2024,25,Burnley,Arsenal,0.183,0.257,0.56
+2024,25,Fulham,Aston Villa,0.318,0.293,0.389
+2024,25,Newcastle,Bournemouth,0.583,0.239,0.178
+2024,25,Nott'm Forest,West Ham,0.309,0.285,0.406
+2024,25,Tottenham,Wolves,0.553,0.253,0.194
+2024,25,Man City,Chelsea,0.64,0.224,0.136
+2024,25,Sheffield United,Brighton,0.202,0.266,0.532
+2024,25,Luton,Man United,0.265,0.27,0.465
+2024,25,Everton,Crystal Palace,0.388,0.296,0.316
+2024,26,Aston Villa,Nott'm Forest,0.555,0.256,0.189
+2024,26,Brighton,Everton,0.486,0.279,0.235
+2024,26,Crystal Palace,Burnley,0.44,0.293,0.267
+2024,26,Man United,Fulham,0.509,0.274,0.217
+2024,26,Bournemouth,Man City,0.095,0.185,0.72
+2024,26,Arsenal,Newcastle,0.551,0.252,0.197
+2024,26,Wolves,Sheffield United,0.539,0.268,0.193
+2024,26,West Ham,Brentford,0.403,0.288,0.309
+2024,27,Brentford,Chelsea,0.34,0.289,0.371
+2024,27,Everton,West Ham,0.334,0.294,0.372
+2024,27,Fulham,Brighton,0.331,0.293,0.376
+2024,27,Newcastle,Wolves,0.486,0.276,0.238
+2024,27,Nott'm Forest,Liverpool,0.141,0.219,0.64
+2024,27,Tottenham,Crystal Palace,0.565,0.25,0.185
+2024,27,Luton,Aston Villa,0.262,0.27,0.468
+2024,27,Burnley,Bournemouth,0.35,0.296,0.354
+2024,27,Man City,Man United,0.619,0.231,0.15
+2024,27,Sheffield United,Arsenal,0.102,0.198,0.7
+2024,28,Man United,Everton,0.51,0.276,0.214
+2024,28,Bournemouth,Sheffield United,0.55,0.261,0.189
+2024,28,Crystal Palace,Luton,0.428,0.278,0.294
+2024,28,Wolves,Fulham,0.363,0.297,0.34
+2024,28,Arsenal,Brentford,0.591,0.24,0.169
+2024,28,Aston Villa,Tottenham,0.385,0.281,0.334
+2024,28,Brighton,Nott'm Forest,0.52,0.262,0.218
+2024,28,West Ham,Burnley,0.54,0.264,0.196
+2024,28,Liverpool,Man City,0.333,0.284,0.383
+2024,28,Chelsea,Newcastle,0.431,0.278,0.291
+2024,17,Bournemouth,Luton,0.385,0.288,0.327
+2024,29,Burnley,Brentford,0.27,0.287,0.443
+2024,29,Luton,Nott'm Forest,0.432,0.273,0.304
+2024,29,Fulham,Tottenham,0.283,0.275,0.442
+2024,29,West Ham,Aston Villa,0.352,0.285,0.363
+2024,30,Newcastle,West Ham,0.457,0.271,0.272
+2024,30,Bournemouth,Everton,0.381,0.291,0.328
+2024,30,Chelsea,Burnley,0.573,0.258,0.169
+2024,30,Nott'm Forest,Crystal Palace,0.376,0.291,0.333
+2024,30,Sheffield United,Fulham,0.216,0.274,0.51
+2024,30,Tottenham,Luton,0.692,0.19,0.118
+2024,30,Aston Villa,Wolves,0.483,0.281,0.236
+2024,30,Brentford,Man United,0.328,0.289,0.383
+2024,30,Liverpool,Brighton,0.607,0.236,0.157
+2024,30,Man City,Arsenal,0.53,0.258,0.212
+2024,31,Newcastle,Everton,0.515,0.267,0.218
+2024,31,Nott'm Forest,Fulham,0.338,0.294,0.368
+2024,31,Bournemouth,Crystal Palace,0.379,0.288,0.333
+2024,31,Burnley,Wolves,0.326,0.3,0.374
+2024,31,West Ham,Tottenham,0.327,0.274,0.399
+2024,31,Arsenal,Luton,0.751,0.164,0.085
+2024,31,Brentford,Brighton,0.373,0.287,0.34
+2024,31,Man City,Aston Villa,0.631,0.226,0.143
+2024,31,Liverpool,Sheffield United,0.855,0.108,0.037
+2024,31,Chelsea,Man United,0.387,0.292,0.321
+2024,32,Crystal Palace,Man City,0.137,0.23,0.633
+2024,32,Aston Villa,Brentford,0.456,0.281,0.263
+2024,32,Everton,Burnley,0.431,0.296,0.273
+2024,32,Fulham,Newcastle,0.336,0.285,0.379
+2024,32,Luton,Bournemouth,0.418,0.272,0.31
+2024,32,Wolves,West Ham,0.342,0.293,0.365
+2024,32,Brighton,Arsenal,0.269,0.279,0.452
+2024,32,Man United,Liverpool,0.279,0.281,0.44
+2024,32,Sheffield United,Chelsea,0.158,0.24,0.602
+2024,32,Tottenham,Nott'm Forest,0.61,0.231,0.159
+2024,33,Newcastle,Tottenham,0.364,0.274,0.362
+2024,33,Brentford,Sheffield United,0.634,0.228,0.138
+2024,33,Burnley,Brighton,0.266,0.287,0.447
+2024,33,Man City,Luton,0.852,0.107,0.041
+2024,33,Nott'm Forest,Wolves,0.376,0.296,0.328
+2024,33,Bournemouth,Man United,0.253,0.274,0.473
+2024,33,Liverpool,Crystal Palace,0.676,0.209,0.115
+2024,33,West Ham,Fulham,0.44,0.281,0.279
+2024,33,Arsenal,Aston Villa,0.535,0.261,0.204
+2024,33,Chelsea,Everton,0.511,0.273,0.216

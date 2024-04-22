@@ -1,0 +1,412 @@
+---
+title: "Bets Optimization"
+author: "Michael Cao"
+date: "2024-03-31"
+output: html_document
+---
+
+```{r setup, include=FALSE, warning=F}
+knitr::opts_chunk$set(echo = TRUE)
+library(lpSolve)
+library(plotly)
+library(gtools)
+library(data.table)
+default <- options()
+```
+
+```{r, message=F}
+download.file("https://www.football-data.co.uk/mmz4281/2324/E0.csv", 
+              "Betting Odds/E0 (2023-24).csv") # manual-refresh
+bets <- fread('Betting Odds/E0 (2023-24).csv')
+write.csv(bets, "Betting Odds/E0 (2023-24).csv")
+cols <- c('HomeTeam', 'AwayTeam', 'B365H', 'B365D', 'B365A', 'FTR')
+bets <- bets[, cols, with = F]
+
+opta <- fread('Opta Predictions.csv')
+dat <- merge(opta, bets, by = c("HomeTeam", "AwayTeam"))
+dat <- dat[order(dat$Week), ]
+dat$pSumOdds <- round(with(dat, 1/B365H + 1/B365D + 1/B365A), 4)
+```
+
+Observation: We can make a risk-free return on any odds distribution with implied probability < 1
+```{r}
+iprob <- 0.99
+
+x <- runif(3)
+p <- x/sum(x)*iprob
+odds <- 1/p
+weights <- round(p/sum(p)*100, 2)
+
+round(odds*weights, 2) # risk-free return
+```
+
+Some odds conversions (American/European)
+```{r}
+o2p <- function(x) # American odds
+{
+  for (i in 1:length(x))
+  {
+    x[i] <- ifelse(x[i]<0, x[i]/(x[i]-100), 100/(x[i]+100))
+  }
+  return(c(x/sum(x), sum(x)))
+}
+
+am2eu <- function(x)
+{
+  for (i in 1:length(x))
+  {
+    x[i] <- ifelse(x[i]<0, (x[i]-100)/x[i], (x[i]+100)/100)
+  }
+  return(x)
+}
+
+eu2am <- function(x)
+{
+  for (i in 1:length(x))
+  {
+    x[i] <- ifelse(x[i]<2, -100/(x[i]-1), (x[i]-1)*100)
+  }
+  return(x)
+}
+```
+
+
+Place risky-free bets - idea of arbitrage betting
+```{r}
+place_bets <- function(x, total_bet = 100, max_bet=0, max_bet_idx=0, eu = F)
+{
+  if (eu) {p <- o2p(eu2am(x))}
+  else {p <- o2p(x)}
+  p_sum <- tail(p,1)
+  if(p_sum>=1) 
+  {
+    output <- paste0("vig: ", sprintf("%.2f", (p_sum-1)*100), "%\n",
+                     "NOT risk-free!", "\n\n")
+    return(cat(output))
+  }
+  p <- head(p, length(x))
+  odds <- 1/p/p_sum
+  bets <- p*total_bet
+  if (max_bet!=0)
+  {
+    ratio <- max_bet/bets[max_bet_idx]
+    bets <- bets*ratio
+  }
+  output <- paste0("bets: $", paste(sprintf("%.2f",bets), collapse = "-$"), "\n", 
+                   "total bets: $", sprintf("%.2f",sum(bets)), "\n", 
+                   "risk-free return: $", sprintf("%.2f",mean(odds*bets)), "\n",
+                   "risk-free profit: ", ifelse((odds*bets)[1]-sum(bets)<0, 
+                                                sprintf("-$%.2f", abs((odds*bets)[1]-sum(bets))),
+                                                sprintf("$%.2f", (odds*bets)[1]-sum(bets))),
+                   "\n",
+                   "profit margin: ", sprintf("%.2f",((odds*bets)[1]-sum(bets))/sum(bets)*100),
+                   "%\n\n")
+  return(cat(output))
+}
+```
+
+
+```{r}
+fd_epl <- c(110,220,240)
+dk_epl <- c(110,225,250)
+dk_epl <- c(120,190,250)
+
+b365_cn <- c(-118, 300, 260) #c(-110, 300, 260)
+fd_cn <- c(-120, 320, 280) #c(-110, 300, 250)
+dk_cn <- c(-120, 330, 285) #c(-105, 300, 255)
+
+place_bets(b365_cn[1:2])
+place_bets(fd_cn[1:2])
+place_bets(dk_cn[1:2])
+
+place_bets(c(1.33, 5.5), eu = T)
+```
+
+
+Solving LP
+  - w1 + w2 + w3 = 1 (weights of bets)
+  - p1, p2, p3 are true (constant) probabilities
+  - x1, x2, x3 are bookmaker's (constant) odds
+  - objective: max expected profit
+  - potentially: solve LP for n possible outcomes
+  
+1) Without risk tolerance
+```{r}
+p <- c(0.65, 0.2, 0.15) # true probability
+x_prob <- c(0.77, 0.18, 0.1)
+x <- 1/x_prob # odds by bookmaker
+
+obj <- p*x
+mat <- matrix(c(rep(1,3)), nrow = 1, byrow = TRUE)
+rhs <- 1
+constr <- "=="
+lp_result <- lp("max", obj, mat, constr, rhs)
+
+print(lp_result$solution)
+print(lp_result$objval)
+```
+Unsurprisingly, the solution to this LP will always tell us to bet on the outcome where the true probability exceeds the bookmaker's probability by the greatest margin.
+
+
+2) With risk tolerance 
+- defined using true probability p: p*w >= [tolerance] 
+(perhaps there's a better way to incorporate this??)
+```{r}
+p <- c(0.65, 0.2, 0.15)
+x_prob <- c(0.77, 0.18, 0.1)
+x <- 1/x_prob
+tol <- 0.3 # risk tolerance
+
+obj <- p*x
+mat <- matrix(c(rep(1,3),
+                p), nrow = 2, byrow = TRUE)
+rhs <- c(1, tol)
+constr <- c("==", ">=")
+lp_result <- lp("max", obj, mat, constr, rhs)
+
+print(lp_result$solution)
+print(lp_result$objval)
+```
+
+Dirichlet distribution: $f(\theta_1, \theta_2, ..., \theta_k; \alpha_1, \alpha_2, ..., \alpha_k) = \frac{1}{B(\alpha)} \prod_{i=1}^{k} \theta_i^{\alpha_i - 1}$
+    - would the alphas be the bookmaker's probability?
+```{r}
+
+# bets[HomeTeam=="Man United" & AwayTeam=="Liverpool"]
+odds <- c(4.75, 4.5, 1.6)
+alpha <- 1/odds/sum(1/odds) # normalize or no?
+# gtools::ddirichlet(x=c(0.3,0.3,0.4), alpha)
+
+
+n <- 100
+h_prob <- seq(0, 1, length.out = n+1)
+d_prob <- seq(0, 1, length.out = n+1)
+plane <- expand.grid(h_prob, d_prob)
+colnames(plane) <- c('H', 'D')
+plane <- plane[plane$H + plane$D <= 1, ]
+plane$A <- 1-rowSums(plane)
+# plane[duplicated(plane), ]
+
+plane$ER <- apply(plane, 1, function(row) sum(row^2*odds))
+# plane[sample(1:nrow(plane), 5),]
+
+plane$density <- apply(plane[,1:3], 1, function(row) ddirichlet(row, alpha))
+```
+
+
+```{r}
+density <- log(sqrt(plane$density+1))
+
+plot_ly() %>%
+  add_trace(
+    type = "scatter3d",
+    mode = "lines",
+    x = c(0, 1, 0),
+    y = c(0, 0, 1),
+    z = c(1, 0, 0),
+    line = list(color = "black"),
+    showlegend = FALSE
+  ) %>%
+  add_trace(
+    type = "scatter3d",
+    mode = "markers",
+    x = plane$H,
+    y = plane$D,
+    z = plane$A,
+    marker = list(
+      color = density,
+      colorscale = "Viridis",
+      cmin = min(density),
+      cmax = max(density),
+      colorbar = list(title = "Density"),
+      size = 1.5
+    )
+  ) %>%
+  layout(
+    scene = list(
+      xaxis = list(title = "Home Win"),
+      yaxis = list(title = "Draw"),
+      zaxis = list(title = "Away Win")
+    )
+  )
+```
+
+
+```{r}
+options(digits = 4)
+
+colMeans(rdirichlet(5e4, c(.7,.2,.1)))
+colMeans(rdirichlet(5e4, c(.7,.2,.1)*10))
+
+var(rdirichlet(5e4, c(.7,.2,.1)))
+var(rdirichlet(5e4, c(.7,.2,.1)*10))
+
+options(default)
+```
+
+1) For a single game, multiply Opta by a positive constant (multiplier)
+    - generate true probabilities using rdirichlet where alpha = Opta*multiplier
+    - compute weight distribution following a set strategy (ex: optimize LP)
+    - for each simulated probabilities, compute expected profit using bookmaker's odds
+        > sum(weight*odds*trueprob)
+```{r}
+multiplier_list <- c(10, 100, 1000, 10000)
+opta_prob <- c(0.55, 0.3, 0.15)
+bm_prob <- c(0.65, 0.25, 0.1)
+# bm_prob <- c(0.56, 0.295, 0.145)
+bm_odds <- 1/bm_prob
+
+par(mfrow = c(2,2))
+for (multiplier in multiplier_list)
+{
+  alpha <- multiplier*opta_prob
+  nsim <- 5e4
+  true_prob <- rdirichlet(nsim, alpha)
+  
+  # Optimize LP (i.e. pick the outcome with greatest difference in prob)
+  diff <- sweep(true_prob, 2, bm_prob) 
+  # diff <- t(t(true_prob) - bm_prob)
+  weight_idx <- apply(diff, 1, function(row) which.max(row))
+  # return <- mapply(function(idx, row) bm_odds[idx] * row, weight_idx, true_prob)
+  return <- rep(NA, nsim)
+  for (i in 1:nsim)
+  {
+    idx <- weight_idx[i]
+    return[i] <- bm_odds[idx]*true_prob[i,idx]
+  }
+  hist(return, freq = T, main = '', xlab = "E[Return]",
+       xlim = c(1,6))
+  legend("topright", bty = "n",
+         legend = c(paste0('mu =', round(mean(return),3)), 
+                    paste0('sd =', round(var(return),3))), 
+         title = paste0('Multiplier =', multiplier),
+         pch = 20,
+         inset = c(0.3, 0), cex = 0.8,
+         col = "black")
+}
+
+```
+
+We can lower our risk (variance) by placing arbitrage bets; lower expected return as tradeoff
+    - probably more useful when true prob deviates from bookmaker more?
+```{r}
+multiplier <- 100
+opta_prob <- c(0.55, 0.3, 0.15)
+bm_prob <- c(0.65, 0.25, 0.1)
+# bm_prob <- c(0.56, 0.295, 0.145)
+bm_odds <- 1/bm_prob
+alpha <- multiplier*opta_prob
+nsim <- 5e4
+true_prob <- rdirichlet(nsim, alpha)
+
+# Optimize LP (i.e. pick the outcome with greatest difference in prob)
+diff <- sweep(true_prob, 2, bm_prob) 
+# diff <- t(t(true_prob) - bm_prob)
+# weight_mat <- apply(diff, 1, function(row) place_bets(5,eu=F))
+
+compute_weights <- function(p, total_bet = 1, eu = F)
+{
+  odds <- 1/p/sum(p)
+  bets <- p*total_bet
+  return(bets)
+}
+
+# weight should be a length 3 vector now!
+weight_idx <- t(apply(diff, 1, function(row) {row[which.min(row)] <- 0
+                                              row[row!=0] <- 1
+                                              return (row)}))
+weights <- weight_idx*true_prob
+weight_mat <- sweep(weights, 1, rowSums(weights), "/")
+# weights <- weights/replicate(3, rowSums(weights))
+
+return <- rep(NA, nsim)
+for (i in 1:nsim)
+{
+  return[i] <- sum(weight_mat[i,]*bm_odds*true_prob[i,])
+}
+hist(return, freq = T, main = '', xlab = "E[Return]")
+legend("topright", bty = "n",
+       legend = c(paste0('mu =', round(mean(return),3)), 
+                  paste0('sd =', round(var(return),3))), 
+       title = paste0('Multiplier =', multiplier),
+       pch = 20,
+       inset = c(0.3, 0), cex = 0.8,
+       col = "black")
+```
+
+Simulate game outcomes using dirchlet centered around Opta*multiplier
+    - sample(.., prob = c())
+    - this is for a sequence of games
+    - compute the return from each game (could be 0)
+ > What does this really add to our simulation besides some uncertainty? 
+ > In the long run it will be the same as simulating just using opta probs
+```{r}
+outcomes <- c("H", "D", "A")
+
+simulate <- function(multiplier = 1, nsim = 100)
+{
+  # pred <- matrix(NA, nrow(dat), nsim)
+  
+  # for (i in 1:nsim)
+  # {
+  #   pred[,i] <- apply(dat[, c("pH", "pD", "pA")], 1,
+  #                     function(row) sample(outcomes, 1, prob = rdirichlet(1, row*multiplier)))
+  # }
+
+  pred <- replicate(nsim, apply(dat[, c("pH", "pD", "pA")], 1,
+                                function(row) sample(outcomes, 1, 
+                                                     prob = rdirichlet(1, row*multiplier))))
+  return(pred)
+}
+
+start <- proc.time()
+pred_mat <- simulate(1, 2e3)
+print(proc.time()-start)
+```
+
+```{r}
+er_mat <- matrix(NA, nrow(pred_mat), ncol(pred_mat)) # expected return
+
+for(i in 1:nrow(pred_mat))
+{
+  winning_odds <- with(dat, ifelse(FTR[i] == "H", B365H[i], 
+                                   ifelse(FTR[i] == "A", B365A[i], B365D[i])))
+  er_mat[i,] <- ifelse(pred_mat[i,]==dat$FTR[i], winning_odds, 0)
+}
+# View(er_mat)
+
+return <- colMeans(er_mat)
+# summary(return)
+hist(return, freq = T, breaks = 40, 
+     main = '', xlab = "return per game", ylab = '')
+legend("topright", bty = "n",
+       legend = c(paste0('mu =', round(mean(return),3)),
+                  paste0('mdn =', round(median(return),3)),
+                  paste0('sd =', round(sd(return),3)),
+                  paste0('p(x>1) =', round(mean(return>1),3))),
+       title = paste0('Multiplier =', 100),
+       pch = 20,
+       inset = c(0.1, 0), cex = 0.8,
+       col = "black")
+```
+
+compare the distribution/frequency of H/D/A
+```{r}
+pred_dist <- matrix(NA,ncol(pred),3)
+
+for(i in 1:ncol(pred))
+{
+  pred_dist[i,] <- prop.table(table(pred[,i])[outcomes])
+}
+
+colors <- c("lightgreen", "skyblue", "salmon")
+barplot(t(pred_dist), col = colors, 
+        main = "", xlab = "", ylab = "P(X=x_i)", 
+        border = NA, space = 0)
+legend("top", legend = outcomes, fill = colors, 
+       horiz = TRUE, xpd = TRUE, bty = "n")
+
+round(prop.table(table(dat$FTR))[outcomes],4) # actual
+cat((round(colMeans(pred_dist),4))) # simulation
+```
+Opta is overestimating draws - although it's true that in this season draws are less frequent than usual

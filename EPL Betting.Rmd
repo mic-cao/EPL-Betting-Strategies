@@ -1,0 +1,1050 @@
+---
+title: "EPL Betting"
+author: "Michael Cao"
+date: "2024-02-24"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE, warning=F}
+knitr::opts_chunk$set(echo = TRUE)
+library(plot3D)
+library(plotly)
+library(rgl)
+library(pracma)
+library(akima)
+library(data.table)
+```
+
+1) Risk/Reward
+    - motivation: for certain games, need to bet $5 to win \$1
+    - plot a 3D surface for a theoretical function (no data)
+        > X = home win probability
+        > Y = away win probability
+        > Z = expected winnings
+```{r}
+plot_winning_surface <- function(w,d,l, n = 100, sty = 2)
+{
+  # hw_prob <- runif(n)
+  # aw_prob <- runif(n)
+  # dr_prob <- runif(n)
+  # rescale <- hw_prob + aw_prob + dr_prob
+  # hw_prob <- hw_prob/rescale
+  # aw_prob <- aw_prob/rescale
+  # dr_prob <- dr_prob/rescale
+  
+  hw_prob <- seq(0, 1, length.out = n+1)
+  aw_prob <- seq(0, 1, length.out = n+1)
+  
+  # dataframe style
+  # data <- data.frame(hw_prob = rep(hw_prob, length(aw_prob)),
+  #                    aw_prob = rep(aw_prob, each = length(hw_prob)))
+  data <- expand.grid(hw_prob, aw_prob)
+  colnames(data) <- c('hw_prob', 'aw_prob')
+  data <- data[data$hw_prob + data$aw_prob <= 1, ]
+  data$expected_return <- data$hw_prob*w + data$aw_prob*l + (1-rowSums(data))*d
+  
+  
+  # matrix style (outer product)
+  expected_return <- outer(hw_prob, aw_prob, 
+                           FUN = function(x, y){x*w + y*l + (1-x-y)*d})
+  expected_return_win <- outer(hw_prob, aw_prob, 
+                               FUN = function(x, y){x*w})
+  expected_return_draw <- outer(hw_prob, aw_prob, 
+                                FUN = function(x, y){(1-x-y)*d})
+  expected_return_loss <- outer(hw_prob, aw_prob, 
+                                FUN = function(x, y){y*l})
+  filter <- outer(hw_prob, aw_prob, 
+                  FUN = function(x, y) {ifelse(x + y > 1, NA, 1)})
+  expected_return <- expected_return * filter # constraint s.t. hw_prob + aw_prob <= 1
+
+  
+  if (sty == 1)
+    persp(x = hw_prob, y = aw_prob, z = expected_return,
+          theta = 30, phi = 30, ticktype = "detailed",
+          col = "blue", border = "black", 
+          xlab = "P(Home Win)", ylab = "P(Away Win)",
+          zlab = "Expected Return")
+  if (sty == 2)
+    # print(plot_ly(x = hw_prob, y = aw_prob, z = expected_return, type = "surface") %>%
+    #          layout(scene = list(xaxis = list(title = "P(Home Win)"),
+    #                              yaxis = list(title = "P(Away Win)"),
+    #                              zaxis = list(title = "Expected Return"))))
+    print(plot_ly(x = hw_prob, y = aw_prob, z = expected_return_win, type = "surface") %>%
+            layout(scene = list(xaxis = list(title = "P(Home Win)"),
+                                yaxis = list(title = "P(Away Win)"),
+                                zaxis = list(title = "Expected Return"))))
+    print(plot_ly(x = hw_prob, y = aw_prob, z = expected_return_draw, type = "surface") %>%
+            layout(scene = list(xaxis = list(title = "P(Home Win)"),
+                                yaxis = list(title = "P(Away Win)"),
+                                zaxis = list(title = "Expected Return"))))
+    print(plot_ly(x = hw_prob, y = aw_prob, z = expected_return_loss, type = "surface") %>%
+            layout(scene = list(xaxis = list(title = "P(Home Win)"),
+                                yaxis = list(title = "P(Away Win)"),
+                                zaxis = list(title = "Expected Return"))))
+  if (sty == 3)
+    plot3d(x = data[,1], y = data[,2], z = data[,3], 
+           type = 's', radius = 1/n,
+           xlab = "P(Home Win)", ylab = "P(Away Win)", zlab = "Expected Return")
+  if (sty == 4)
+    scatter3D(x = data[,1], y = data[,2], z = data[,3], 
+              phi = 10, bty = 'g', type = "h", cex = .5,
+              xlab = "P(Home Win)", ylab = "P(Away Win)", zlab = "Expected Return")
+}
+```
+```{r}
+plot_winning_surface(w = 0.2,
+                     d = 2,
+                     l = 1)
+# plot_winning_surface(1, 3, 2)
+```
+
+
+2) Rethink in a betting/financial perspective
+    - get predicted probabilities from Opta
+    - get betting odds from Ladbrokes
+    - run a simulation and analyze the distribution of returns
+        > distribute $100 to the 10 games each week
+        > if possible, find strategy to maximize returns
+    - in theory, if probability known, use logit to compute odds 
+      (this is incorrect, logit = log-odds)
+
+[Complete Betting Odds Records from 1993-94 (England)](https://www.football-data.co.uk/englandm.php)
+[Complete Betting Odds Records from 1993-94 (All)](https://www.football-data.co.uk/data.php)
+```{r, message=F, warning=F}
+download.file("https://www.football-data.co.uk/mmz4281/2324/E0.csv", 
+              "Betting Odds/E0 (2023-24).csv") # manual-refresh
+bets <- fread('Betting Odds/E0 (2023-24).csv')
+write.csv(bets, "Betting Odds/E0 (2023-24).csv")
+opta <- fread('Opta Predictions.csv')
+# View(odds)
+```
+The source above contains game records, statistics, and betting odds for all five England football divisions; it also contains odds by different bookmakers (all European). The second link contains records for other countries' leagues (outside of England).
+
+```{r}
+head(bets[bets$HomeTeam == "Man City", ])
+```
+
+Note that traditional American bookmaker uses different notations for odds. For a particular game, Draftkings might give an odds of c(-230, +380, +650) - meaning if you bet home win, you need to bet \$230 to generate a \$100 profit, \$100 for a \$380 profit for a draw, and \$100 for a \$650 profit for an away win. 
+
+However, for a British/European bookmaker, the odds are expressed in smaller but positive numbers such as c(8, 5.5, 1.33). This means that for a \$1 bet, you get \$8 profit for a home win, \$5.5 for a draw, and only \$0.33 for an away win. 
+  - Is this correct? I have not seen odds less than 1 by checking range((dat$B365H))...
+      > In that sense, what would be a 2/1 odds mean?
+
+[EPL odds by American bookmakers](https://www.oddschecker.com/us/soccer/english/premier-league)
+Note also different kinds of bets that we can explore. The default one is called 'win market'. There are also bets of 'both teams to score', 'double chance', and 'half time'.
+
+```{r}
+cols <- c('HomeTeam', 'AwayTeam', 'B365H', 'B365D', 'B365A', 'FTR')
+bets <- bets[, cols, with = F]
+
+# match dataframes by game
+dat <- merge(opta, bets, by = c("HomeTeam", "AwayTeam"))
+dat <- dat[order(dat$Week), ]
+# dat <- subset(dat, week=25)
+dat$pSumOdds <- round(with(dat, 1/B365H + 1/B365D + 1/B365A), 4)
+```
+Converting the decimal odds from Bet365 to probabilities and summing them, every game sums to about 105% for all possible outcomes, perhaps indicating the bookmaker's edge.
+
+```{r}
+simulate_bets <- function(df,stake=100,nsim=10000,random=F,even=F,plot=F)
+{
+  weights <- matrix(runif(nsim*nrow(df)), nrow = nsim, ncol = nrow(df))
+  weights <- weights/rowSums(weights)*stake
+  
+  return_mat <- matrix(NA, nsim, nrow(df))
+  bet_mat <- matrix(NA, nsim, nrow(df))
+  
+  if (random) { df[, c("pH", "pA", "pD")] <- 1/3 }
+  if (even) { weights <- matrix(stake/nrow(df), nrow = nsim, ncol = nrow(df))}
+  
+  for (j in 1:nrow(df))
+  {
+    winning_odds <- with(df, ifelse(FTR[j] == "H", B365H[j], 
+                                    ifelse(FTR[j] == "A", B365A[j], B365D[j])))
+    bet_mat[,j] <- sample(c("H","D","A"), prob = with(df[j,], c(pH, pD, pA)), 
+                        size = nsim, replace = T)
+    return_mat[,j] <- ifelse(bet_mat[,j]==df$FTR[j], winning_odds*weights[,j], 0)
+  }
+  
+  returns <- rowSums(return_mat)
+  
+  if (plot)
+  {
+    hist(returns, breaks = seq(0, max(returns)+stake/20, stake/20), 
+         ylab = '', main = '', xlab = '', 
+         col = rgb(0.2,0.8,0.5,0.5), border = F, axes = F)
+    axis(side = 1, at = seq(0, max(returns)+stake/20, stake/10), las = 2,
+         cex.axis = 0.6, tcl= 0.1, mgp= c(0,0,-0.45),
+         xlab = paste0('Return on $', stake))
+    abline(v = median(returns), col = 'red', lwd = 2)
+    abline(v = mean(returns), col = 'blue', lwd = 2)
+    abline(v = stake, col = 'purple', lwd = 2, lty = 2)
+    legend("topright", bty = "n",
+           legend = c("Median", "Mean", "Even"), 
+           title = paste0('Return on a $', stake, ' bet'),
+           lwd = 2, lty = c(1, 1, 2),
+           inset = c(0.25, 0.1), cex = 0.7,
+           col = c("red", "blue", "purple"))
+  }
+    
+  return(round(summary(returns), 2))
+}
+```
+```{r}
+set.seed(1)
+simulate_bets(dat, nsim = 3e4) # all games
+simulate_bets(dat, nsim = 3e4, random = T) 
+simulate_bets(dat, nsim = 3e4, even = T) 
+simulate_bets(dat, nsim = 3e4, random = T, even = T) 
+```
+This result confirms prof. Booth's hypothesis that if we place bets according to Opta supercomputer's predicted probabilities, in the long run, we will almost be guaranteed to lose money. This might also relate to the inflated probability from the converted bookmaker's odds, i.e. sum always  >= 100%
+
+Also compare if supercomputer outperforms random bets (1/3 for any outcome), and/or even weights on bets (\$100 evenly distributed to all games)
+```{r}
+simulate_bets(dat[dat$Week==25, ], nsim = 1e6, plot = T)
+simulate_bets(dat[dat$Week==25, ], nsim = 1e6, random = T, plot = T)
+simulate_bets(dat[dat$Week==25, ], nsim = 1e6, even = T, plot = T)
+simulate_bets(dat[dat$Week==25, ], nsim = 1e6, random = T, even = T, plot = T)
+```
+Surprisingly, it does not make a difference in terms of quantiles! However, examining the histograms, the distributions using random weights and predicted probabilities are smoother and generally have more winning potentials.
+
+```{r}
+simulate_bets(dat[dat$Week==26, ], nsim = 1e6, plot = T)
+simulate_bets(dat[dat$Week==26, ], nsim = 1e6, random = T, plot = T)
+simulate_bets(dat[dat$Week==26, ], nsim = 1e6, even = T, plot = T)
+simulate_bets(dat[dat$Week==26, ], nsim = 1e6, random = T, even = T, plot = T)
+```
+Perhaps we can come up with strategies such as betting only on games that have max(pH, pD, pA) > c1 and/or min(pH, pD, pA) < c2
+
+
+Investigating Expected Return
+  - The expected return on a one dollar bet is: P(result) x Payout, 
+    where P(result) is the probability of the result (H, D, or A). 
+      > Is the expected return the same for all three results? 
+      > Does the expected return vary between games?
+```{r}
+dat$EPH <- with(data = dat, round(pH*(B365H-1)-(1-pH), 2)) # ER here should be expected profit
+dat$EPD <- with(data = dat, round(pD*(B365D-1)-(1-pD), 2))
+dat$EPA <- with(data = dat, round(pA*(B365A-1)-(1-pA), 2))
+
+dat[, c("Week", "HomeTeam", "AwayTeam", "FTR", 'pH', 'pD', 'pA', "EPH", "EPD", "EPA")]
+```
+```{r}
+par(mfrow = c(1,1))
+hist(dat$EPH, breaks = 20, main = '', ylab = '', xlab = "E[Profit|H]")
+hist(dat$EPD, breaks = 20, main = '', ylab = '', xlab = "E[Profit|D]")
+hist(dat$EPA, breaks = 20, main = '', ylab = '', xlab = "E[Profit|A]")
+
+summary(dat$EPH)
+summary(dat$EPD)
+summary(dat$EPA)
+```
+The observation here is that, according to the predicted probabilities by Opta, the minimum expected return always occurs for the most likely outcome for each game, whereas the maximum expected return always occurs for the least likely outcome. This relationship can be observed by computing the correlation coefficient of each outcome.
+```{r}
+cor(dat$pH, dat$EPH)
+cor(dat$pD, dat$EPD)
+cor(dat$pA, dat$EPA)
+```
+This result shows that the betting odds does not completely nullifies the power of Opta predictions, which confirmed our simulation results above (where random = T vs F). Therefore, we can develop strategies that would be able to improve our avg returns.
+
+To visualize this,
+```{r}
+# plot(1:25, pch = 1:25)
+plot(dat$pH, dat$EPH, pch = 19, cex = 1.2, 
+     col = "green", bty = "u",
+     xlim = c(0,.9), ylim = c(min(c(dat$EPH, dat$EPA)), max(c(dat$EPH, dat$EPA))),
+     xlab = "Opta", ylab = "E[Profit]")
+points(dat$pD, dat$EPD, pch = 17, cex = 1.2, col = "gray")
+points(dat$pA, dat$EPA, pch = 10, cex = 1.2, col = "red")
+abline(h=0, lty = 2)
+legend("topright", bty = "n",
+       legend = c("H", "D", "A"),
+       lwd = 1.5, 
+       pch = c(19, 17, 10),
+       inset = c(0.2, 0.1), cex = 0.9,
+       col = c("green", "gray", "red"))
+```
+
+KL-Divergence (Note: did not incorporate the predicted probabilities from our logistic model - using only Opta for now)
+```{r}
+dat$KL <- round(with(data = dat, pH*log(pH*B365H*pSumOdds) 
+                     + pD*log(pD*B365D*pSumOdds) 
+                     + pA*log(pA*B365A*pSumOdds)), 3) # Opta as reference
+dat$KL2 <- round(with(data = dat, 1/B365H/pSumOdds*log(1/B365H/pSumOdds/pH) 
+                      + 1/B365D/pSumOdds*log(1/B365D/pSumOdds/pD)
+                      + 1/B365A/pSumOdds*log(1/B365A/pSumOdds/pA)), 3) # B365 as reference
+
+cols <- c("HomeTeam", "AwayTeam", 'pH', 'pD', 'pA', "B365H", "B365D", "B365A",
+          "KL", "KL2")
+head(dat[dat$KL>0.1, cols, with = F])
+round(c(mean(dat$KL>0.1), mean(dat$KL>0.05), mean(dat$KL>0.01)), 4)
+round(c(mean(dat$KL2>0.1), mean(dat$KL2>0.05), mean(dat$KL2>0.01)), 4)
+```
+Around 90% of records are below 0.05 KL-divergence threshold, and over 98% of records are below 0.1 KL-divergence threshold. (What's commonly used in practice?)
+
+```{r}
+dat[which.max(dat$KL), cols, with = F]
+dat[which.max(dat$KL2), cols, with = F]
+dat[which.max(dat$EPH), cols, with = F] # same game returned!
+```
+Discrepancy between Opta and Bet365
+```{r}
+dat$pHDiff <- with(data = dat, round(pH - 1/B365H/pSumOdds, 3))
+dat$pDDiff <- with(data = dat, round(pD - 1/B365D/pSumOdds, 3))
+dat$pADiff <- with(data = dat, round(pA - 1/B365A/pSumOdds, 3))
+
+cols <- c('Week', 'HomeTeam', 'AwayTeam', 'FTR', 'pHDiff', 'pDDiff', 'pADiff')
+dat[, cols, with = F]
+```
+```{r}
+print(range(dat$pHDiff))
+print(range(dat$pDDiff))
+print(range(dat$pADiff))
+```
+```{r}
+dat[which.max(abs(dat$pADiff)), cols, with = F] # again refers to this game!
+```
+Games with results = highest odds outcome (upsets)
+```{r}
+hoc <- apply(dat, 1, FUN = function(row){which.max(c(row["B365H"], 
+                                                     row["B365D"], row["B365A"]))})
+hoc <- c("H", "D", "A")[hoc]
+hpc <- apply(dat, 1, FUN = function(row){which.max(c(row["pH"], row["pD"], row["pA"]))})
+hpc <- c("H", "D", "A")[hpc]
+mean(dat$FTR == hoc)
+mean(dat$FTR == hpc)
+mean(dat$FTR[dat$KL>.03] == hoc[dat$KL>.03])
+mean(dat$FTR[dat$KL>.03] == hpc[dat$KL>.03]) # motivation for strategy 6
+```
+For this current season, if we always pick the outcome in the highest odds category (hoc), then we would be correct on 20.78% of the games.
+```{r}
+cols <- c("HomeTeam", "AwayTeam", 'FTR', 
+          "B365H", "B365D", "B365A", 'EPH', 'EPD', 'EPA', "KL", "KL2")
+
+mean(pmax(dat$B365H, dat$B365D, dat$B365A) >= 7 & dat$FTR == hoc)
+mean(pmax(dat$B365H, dat$B365D, dat$B365A) >= 6 & dat$FTR == hoc)
+mean(pmax(dat$B365H, dat$B365D, dat$B365A) >= 5 & dat$FTR == hoc)
+dat[pmax(dat$B365H, dat$B365D, dat$B365A) >= 7 & dat$FTR == hoc, cols, with = F]
+```
+
+Exploring Other Strategies:
+1) outcome-based stubborn bets (only H/D/A)
+2) safe/risky game selection 
+  - method 1: only bet on game outcomes with B365 odds <(>) k, where k is some constant
+  - method 2: only bet on game outcomes with Opta prob >(<) p, where p is some constant
+3) Opta/B365-based bets (only most/least likely outcomes; bet on all games)
+  - a special case of strategy 2
+      > most likely: p=0 & safe; least likely: p=1 & risky (similarly for odds)
+4) strategic bets: bet only on outcomes with smallest/largest discrepancy in prob
+5) strategic bets: bet only on outcomes with largest/smallest expected return (computed using Opta)
+6) strategic game selection: bet only on games where KL > k (k is some constant), then use strategy 3 to place bets
+...... and compare all with random simulation (written previously); in other words, for any strategy to be qualified as 'good', it needs to beat the average return from our random simulation
+
+1) outcome-based stubborn bets (only H/D/A)
+```{r}
+strat_1 <- function(df,outcome,stake=100,nsim=10000,even=F,plot=F)
+{
+  weights <- matrix(runif(nsim*nrow(df)), nrow = nsim, ncol = nrow(df))
+  weights <- weights/rowSums(weights)*stake
+  
+  return_mat <- matrix(NA, nsim, nrow(df))
+  if (outcome == "H") { bet_mat <- matrix("H", nsim, nrow(df)) }
+  else if (outcome == "D") { bet_mat <- matrix("D", nsim, nrow(df)) }
+  else if (outcome == "A") { bet_mat <- matrix("A", nsim, nrow(df)) }
+  
+  # if (random) { df[, c("pH", "pA", "pD")] <- 1/3 }
+  if (even) { weights <- matrix(stake/nrow(df), nrow = nsim, ncol = nrow(df)) }
+  
+  for (j in 1:nrow(df))
+  {
+    winning_odds <- with(df, ifelse(FTR[j] == "H", B365H[j], 
+                                    ifelse(FTR[j] == "A", B365A[j], B365D[j])))
+    return_mat[,j] <- ifelse(bet_mat[,j]==df$FTR[j], winning_odds*weights[,j], 0)
+  }
+  returns <- rowSums(return_mat)
+  
+  return(round(summary(returns), 2))
+}
+```
+```{r}
+strat_1(dat[dat$Week==26, ], "H", nsim = 1e6)
+strat_1(dat[dat$Week==26, ], "D", nsim = 1e6)
+strat_1(dat[dat$Week==26, ], "A", nsim = 1e6)
+```
+```{r}
+strat_1(dat[dat$Week==25, ], "H", nsim = 1e6)
+strat_1(dat[dat$Week==25, ], "D", nsim = 1e6)
+strat_1(dat[dat$Week==25, ], "A", nsim = 1e6)
+```
+Strategy 1's return is highly dependent on a week's results. Let's look at the returns for all games this season for a more meaningful comparison.
+```{r}
+strat_1(dat, "H", nsim = 5e4, plot = F)
+strat_1(dat, "D", nsim = 5e4, plot = F)
+strat_1(dat, "A", nsim = 5e4, plot = F)
+```
+Although only betting home win does consistently beat the random algorithm with a $93.92 mean, this is merely a reflection of the H-D-A distribution of the 250+ games so far in this season; additionally, we will still lose money in the long run.
+```{r}
+signif(prop.table(table(dat$FTR)), 4)
+```
+plot return vs week
+```{r}
+returns <- replicate(4, rep(NA, max(dat$Week)), simplify = F)
+for (i in 1:max(dat$Week))
+{
+  returns[[1]][i] <- strat_1(dat[dat$Week == i, ], "H", nsim = 3e4)['Mean']
+  returns[[2]][i] <- strat_1(dat[dat$Week == i, ], "D", nsim = 3e4)['Mean']
+  returns[[3]][i] <- strat_1(dat[dat$Week == i, ], "A", nsim = 3e4)['Mean']
+  returns[[4]][i] <- simulate_bets(dat[dat$Week == i, ], nsim = 3e4)['Mean']
+}
+
+my_colors <- c("green", "gray", "lightcoral", "blue")
+plot(1:max(dat$Week), returns[[1]], # ylim = c(80, 100),
+     ylim = c(0, max(do.call(c, returns[1:4]), na.rm = T)),
+     type = "o", col = my_colors[1], xlab = '', ylab = 'E[Return]',
+     lwd = 1.5, bty = "u", xaxt = 'n')
+for (i in 1:length(returns))
+{
+  if (i>=2) {lines(1:max(dat$Week), returns[[i]], 
+                   type = 'o', col = my_colors[i], lwd = 1.5)}
+  abline(h = mean(returns[[i]], na.rm = T), col = my_colors[i],
+         lwd = 1.5, lty = 2)
+}
+axis(1, at = 1:max(dat$Week), labels = 1:max(dat$Week), 
+     las = 2, cex.axis = 0.9)
+legend("topright", 
+       legend = c("Strat 1: H", "Strat 1: D", "Strat 1: A", "Random"),
+       col = my_colors, 
+       lty = 2, lwd = 3, bty = "n", cex = 0.7, inset = c(0.01, 0))
+```
+
+2) safe/risky game selection 
+  - method 1: only bet on game outcomes with B365 odds <(>) k, where k is some constant
+  - method 2: only bet on game outcomes with Opta prob >(<) p, where p is some constant
+```{r}
+strat_2 <- function(df,type,k,risk,stake=100,nsim=10000,even=F,plot=F)
+{
+  if(type=='odds' & risk=="safe")
+  {
+    df <- df[pmin(df$B365H, df$B365D, df$B365A) <= k, ]
+    bets <- apply(df, 1, function(row) 
+      {c("H", "D", "A")[which.min(row[c("B365H", "B365D", "B365A")])][1]})
+  }
+  else if(type=='odds' & risk=="risky")
+  {
+    df <- df[pmax(df$B365H, df$B365D, df$B365A) >= k, ]
+    bets <- apply(df, 1, function(row) 
+      {c("H", "D", "A")[which.max(row[c("B365H", "B365D", "B365A")])][1]})
+  }
+  else if(type=='prob' & risk=="safe")
+  {
+    df <- df[pmax(df$pH, df$pD, df$pA) >= k, ]
+    bets <- apply(df, 1, function(row) 
+      {c("H", "D", "A")[which.max(row[c("pH", "pD", "pA")])][1]})
+  }
+  else if(type=='prob' & risk=="risky")
+  {
+    df <- df[pmin(df$pH, df$pD, df$pA) <= k, ]
+    bets <- apply(df, 1, function(row) 
+      {c("H", "D", "A")[which.min(row[c("pH", "pD", "pA")])][1]})
+  }
+  
+  if (nrow(df)==0) {return(NA)}
+  
+  weights <- matrix(runif(nsim*nrow(df)), nrow = nsim, ncol = nrow(df))
+  weights <- weights/rowSums(weights)*stake
+  
+  return_mat <- matrix(NA, nsim, nrow(df))
+  bet_mat <- matrix(rep(bets, nsim), nrow = nsim, byrow = T)
+  
+  # if (random) { df[, c("pH", "pA", "pD")] <- 1/3 }
+  if (even) { weights <- matrix(stake/nrow(df), nrow = nsim, ncol = nrow(df))}
+  
+  for (j in 1:nrow(df))
+  {
+    winning_odds <- with(df, ifelse(FTR[j] == "H", B365H[j], 
+                                    ifelse(FTR[j] == "A", B365A[j], B365D[j])))
+    return_mat[,j] <- ifelse(bet_mat[,j]==df$FTR[j], winning_odds*weights[,j], 0)
+  }
+  
+  returns <- rowSums(return_mat)
+  
+  return(round(summary(returns), 2))
+}
+```
+```{r}
+strat_2(dat, type = 'prob', k = 0.1, risk = 'risky', nsim = 2e4)
+strat_2(dat, type = 'prob', k = 0.15, risk = 'risky', nsim = 2e4)
+strat_2(dat, type = 'prob', k = 0.2, risk = 'risky', nsim = 2e4)
+strat_2(dat, type = 'prob', k = 0.25, risk = 'risky', nsim = 2e4)
+strat_2(dat, type = 'prob', k = 0.3, risk = 'risky', nsim = 2e4)
+```
+```{r}
+strat_2(dat, type = 'prob', k = 0.5, risk = 'safe', nsim = 2e4)
+strat_2(dat, type = 'prob', k = 0.55, risk = 'safe', nsim = 2e4)
+strat_2(dat, type = 'prob', k = 0.6, risk = 'safe', nsim = 2e4)
+strat_2(dat, type = 'prob', k = 0.65, risk = 'safe', nsim = 2e4)
+strat_2(dat, type = 'prob', k = 0.7, risk = 'safe', nsim = 2e4)
+strat_2(dat, type = 'prob', k = 0.75, risk = 'safe', nsim = 2e4)
+strat_2(dat, type = 'prob', k = 0.8, risk = 'safe', nsim = 2e4)
+```
+```{r}
+strat_2(dat, type = 'odds', k = 7, risk = 'risky', nsim = 2e4)
+strat_2(dat, type = 'odds', k = 6, risk = 'risky', nsim = 2e4)
+strat_2(dat, type = 'odds', k = 5, risk = 'risky', nsim = 2e4)
+strat_2(dat, type = 'odds', k = 4, risk = 'risky', nsim = 2e4)
+```
+```{r}
+strat_2(dat, type = 'odds', k = 2, risk = 'safe', nsim = 2e4)
+strat_2(dat, type = 'odds', k = 1.8, risk = 'safe', nsim = 2e4)
+strat_2(dat, type = 'odds', k = 1.6, risk = 'safe', nsim = 2e4)
+strat_2(dat, type = 'odds', k = 1.5, risk = 'safe', nsim = 2e4)
+strat_2(dat, type = 'odds', k = 1.4, risk = 'safe', nsim = 2e4)
+strat_2(dat, type = 'odds', k = 1.3, risk = 'safe', nsim = 2e4)
+```
+Surprisingly, playing it safe is a reliable strategy to get your money back. However, this could also just mean that there are less upsets than usual so far this season.
+```{r}
+returns <- replicate(4, rep(NA, max(dat$Week)), simplify = F)
+for (i in 1:max(dat$Week))
+{
+  returns[[1]][i] <- strat_2(dat[dat$Week == i, ], type = 'odds', 
+                             k = 1.5, risk = 'safe', nsim = 3e4)['Mean']
+  returns[[2]][i] <- strat_2(dat[dat$Week == i, ], type = 'prob', 
+                             k = 0.65, risk = 'safe', nsim = 3e4)['Mean']
+  returns[[3]][i] <- strat_2(dat[dat$Week == i, ], type = 'odds', 
+                             k = 5, risk = 'risky', nsim = 3e4)['Mean']
+  returns[[4]][i] <- simulate_bets(dat[dat$Week == i, ], nsim = 3e4)['Mean']
+}
+
+my_colors <- c("green", "darkgreen", "red", "blue")
+plot(1:max(dat$Week), returns[[1]], # ylim = c(80, 100),
+     ylim = c(0, max(do.call(c, returns[1:4]), na.rm = T)),
+     type = "o", col = my_colors[1], xlab = '', ylab = 'E[Return]',
+     lwd = 1.5, bty = "u", xaxt = 'n')
+for (i in 1:length(returns))
+{
+  if (i>=2) {lines(1:max(dat$Week), returns[[i]], 
+                   type = 'o', col = my_colors[i], lwd = 1.5)}
+  abline(h = mean(returns[[i]], na.rm = T), col = my_colors[i],
+         lwd = 1.5, lty = 2)
+}
+axis(1, at = 1:max(dat$Week), labels = 1:max(dat$Week), 
+     las = 2, cex.axis = 0.9)
+legend("topright", 
+       legend = c("Strat 2: safe(odds<=1.5)", 
+                  "Strat 2: safe(prob>=0.65)", 
+                  "Strat 2: risky(odds>=5)", "Random"),
+       col = my_colors, 
+       lty = 2, lwd = 3, bty = "n", cex = 0.7, inset = c(0.01, 0))
+```
+
+
+3) Opta/B365-based bets (only most/least likely outcomes; bet on all games)
+  - a special case of strategy 2
+      > most likely: p=0 & safe; least likely: p=1 & risky (similarly for odds)
+```{r}
+strat_3 <- strat_2
+strat_3(dat, type = 'prob', k = 1, risk = 'risky', nsim = 3e4) # min-prob
+strat_3(dat, type = 'prob', k = 0, risk = 'safe', nsim = 3e4) # max-prob
+strat_3(dat, type = 'odds', k = 0, risk = 'risky', nsim = 3e4) # max-odds
+strat_3(dat, type = 'odds', k = 100, risk = 'safe', nsim = 3e4) # min-odds
+```
+```{r}
+returns <- replicate(5, rep(NA, max(dat$Week)), simplify = F)
+for (i in 1:max(dat$Week))
+{
+  returns[[1]][i] <- strat_3(dat[dat$Week == i, ], type = 'prob', 
+                             k = 0, risk = 'safe', nsim = 3e4)['Mean']
+  returns[[2]][i] <- strat_3(dat[dat$Week == i, ], type = 'odds', 
+                             k = 100, risk = 'safe', nsim = 3e4)['Mean']
+  returns[[3]][i] <- strat_3(dat[dat$Week == i, ], type = 'prob', 
+                             k = 1, risk = 'risky', nsim = 3e4)['Mean']
+  returns[[4]][i] <- strat_3(dat[dat$Week == i, ], type = 'odds', 
+                             k = 0, risk = 'risky', nsim = 3e4)['Mean']
+  returns[[5]][i] <- simulate_bets(dat[dat$Week == i, ], nsim = 3e4)['Mean']
+}
+
+my_colors <- c("green", "darkgreen", "orange", "red", "blue")
+plot(1:max(dat$Week), returns[[1]], # ylim = c(80, 100),
+     ylim = c(0, max(do.call(c, returns[1:5]), na.rm = T)),
+     type = "o", col = my_colors[1], xlab = '', ylab = 'E[Return]',
+     lwd = 1.5, bty = "u", xaxt = 'n')
+for (i in 1:length(returns))
+{
+  if (i>=2) {lines(1:max(dat$Week), returns[[i]], 
+                   type = 'o', col = my_colors[i], lwd = 1.5)}
+  abline(h = mean(returns[[i]], na.rm = T), col = my_colors[i],
+         lwd = 1.5, lty = 2)
+}
+axis(1, at = 1:max(dat$Week), labels = 1:max(dat$Week), 
+     las = 2, cex.axis = 0.9)
+legend("topright", 
+       legend = c("Strat 3: safe(prob)", 
+                  "Strat 3: safe(odds)", 
+                  "Strat 3: risky(prob)", 
+                  "Strat 3: risky(odds)",
+                  "Random"),
+       col = my_colors, 
+       lty = 2, lwd = 3, bty = "n", cex = 0.7, inset = c(0.01, 0))
+```
+
+4) strategic bets: bet only on outcomes with smallest/largest discrepancy in prob
+```{r}
+strat_4 <- function(df,type,abs=F,stake=100,nsim=10000,even=F,plot=F)
+{
+  if(abs) { df[, c("pHDiff", "pDDiff", 
+                   "pADiff")] <- abs(df[, c("pHDiff", "pDDiff", "pADiff")]) }
+  if(type=='L')
+  {
+    bets <- apply(df, 1, function(row) 
+      {c("H", "D", "A")[which.max(row[c("pHDiff", "pDDiff", "pADiff")])][1]})
+  }
+  else if(type=='S')
+  {
+    bets <- apply(df, 1, function(row) 
+      {c("H", "D", "A")[which.min(row[c("pHDiff", "pDDiff", "pADiff")])][1]})
+  }
+  
+  weights <- matrix(runif(nsim*nrow(df)), nrow = nsim, ncol = nrow(df))
+  weights <- weights/rowSums(weights)*stake
+  
+  return_mat <- matrix(NA, nsim, nrow(df))
+  bet_mat <- matrix(rep(bets, nsim), nrow = nsim, byrow = T)
+  
+  # if (random) { df[, c("pH", "pA", "pD")] <- 1/3 }
+  if (even) { weights <- matrix(stake/nrow(df), nrow = nsim, ncol = nrow(df))}
+  
+  for (j in 1:nrow(df))
+  {
+    winning_odds <- with(df, ifelse(FTR[j] == "H", B365H[j], 
+                                    ifelse(FTR[j] == "A", B365A[j], B365D[j])))
+    return_mat[,j] <- ifelse(bet_mat[,j]==df$FTR[j], winning_odds*weights[,j], 0)
+  }
+  
+  returns <- rowSums(return_mat)
+  
+  return(round(summary(returns), 2))
+}
+```
+
+```{r}
+strat_4(dat, type = 'L', nsim = 3e4)
+strat_4(dat, type = 'S', nsim = 3e4)
+strat_4(dat, type = 'L', abs = T, nsim = 3e4)
+strat_4(dat, type = 'S', abs = T, nsim = 3e4)
+```
+```{r}
+returns <- replicate(5, rep(NA, max(dat$Week)), simplify = F)
+for (i in 1:max(dat$Week))
+{
+  returns[[1]][i] <- strat_4(dat[dat$Week == i, ], type = 'L', nsim = 3e4)['Mean']
+  returns[[2]][i] <- strat_4(dat[dat$Week == i, ], type = 'S', nsim = 3e4)['Mean']
+  returns[[3]][i] <- strat_4(dat[dat$Week == i, ], type = 'L', abs = T, nsim = 3e4)['Mean']
+  returns[[4]][i] <- strat_4(dat[dat$Week == i, ], type = 'S', abs = T, nsim = 3e4)['Mean']
+  returns[[5]][i] <- simulate_bets(dat[dat$Week == i, ], nsim = 3e4)['Mean']
+}
+
+my_colors <-c("red", "green", "purple", "orange", "blue")
+plot(1:max(dat$Week), returns[[1]], # ylim = c(80, 100),
+     ylim = c(0, max(do.call(c, returns[1:5]), na.rm = T)),
+     type = "o", col = my_colors[1], xlab = '', ylab = 'E[Return]',
+     lwd = 1.5, bty = "u", xaxt = 'n')
+for (i in 1:length(returns))
+{
+  if (i>=2) {lines(1:max(dat$Week), returns[[i]], 
+                   type = 'o', col = my_colors[i], lwd = 1.5)}
+  abline(h = mean(returns[[i]], na.rm = T), col = my_colors[i],
+         lwd = 1.5, lty = 2)
+}
+axis(1, at = 1:max(dat$Week), labels = 1:max(dat$Week), 
+     las = 2, cex.axis = 0.9)
+legend("topright", 
+       legend = c("Strat 4: max", 
+                  "Strat 4: min", 
+                  "Strat 4: max(abs)", 
+                  "Strat 4: min(abs)",
+                  "Random"),
+       col = my_colors, 
+       lty = 2, lwd = 3, bty = "n", cex = 0.7, inset = c(0.01, 0))
+```
+
+5) strategic bets: bet only on outcomes with largest/smallest expected profit (computed using Opta)
+```{r}
+strat_5 <- function(df,type,stake=100,nsim=10000,even=F,plot=F)
+{
+  if(type=='L')
+  {
+    bets <- apply(df, 1, function(row) 
+      {c("H", "D", "A")[which.max(row[c("EPH", "EPD", "EPA")])][1]})
+  }
+  else if(type=='S')
+  {
+    bets <- apply(df, 1, function(row) 
+      {c("H", "D", "A")[which.min(row[c("EPH", "EPD", "EPA")])][1]})
+  }
+  
+  weights <- matrix(runif(nsim*nrow(df)), nrow = nsim, ncol = nrow(df))
+  weights <- weights/rowSums(weights)*stake
+  
+  return_mat <- matrix(NA, nsim, nrow(df))
+  bet_mat <- matrix(rep(bets, nsim), nrow = nsim, byrow = T)
+  
+  # if (random) { df[, c("pH", "pA", "pD")] <- 1/3 }
+  if (even) { weights <- matrix(stake/nrow(df), nrow = nsim, ncol = nrow(df))}
+  
+  for (j in 1:nrow(df))
+  {
+    winning_odds <- with(df, ifelse(FTR[j] == "H", B365H[j], 
+                                    ifelse(FTR[j] == "A", B365A[j], B365D[j])))
+    return_mat[,j] <- ifelse(bet_mat[,j]==df$FTR[j], winning_odds*weights[,j], 0)
+  }
+  
+  returns <- rowSums(return_mat)
+
+  return(round(summary(returns), 2))
+}
+```
+```{r}
+strat_5(dat, type = 'L', nsim=3e4)
+strat_5(dat, type = 'S', nsim=3e4)
+```
+```{r}
+returns <- replicate(3, rep(NA, max(dat$Week)), simplify = F)
+for (i in 1:max(dat$Week))
+{
+  returns[[1]][i] <- strat_5(dat[dat$Week == i, ], type = 'L', nsim = 3e4)['Mean']
+  returns[[2]][i] <- strat_5(dat[dat$Week == i, ], type = 'S', nsim = 3e4)['Mean']
+  returns[[3]][i] <- simulate_bets(dat[dat$Week == i, ], nsim = 3e4)['Mean']
+}
+
+my_colors <-c("red", "darkgreen","blue")
+plot(1:max(dat$Week), returns[[1]], # ylim = c(80, 100),
+     ylim = c(0, max(do.call(c, returns[1:3]), na.rm = T)),
+     type = "o", col = my_colors[1], xlab = '', ylab = 'E[Return]',
+     lwd = 1.5, bty = "u", xaxt = 'n')
+for (i in 1:length(returns))
+{
+  if (i>=2) {lines(1:max(dat$Week), returns[[i]], 
+                   type = 'o', col = my_colors[i], lwd = 1.5)}
+  abline(h = mean(returns[[i]], na.rm = T), col = my_colors[i],
+         lwd = 1.5, lty = 2)
+}
+axis(1, at = 1:max(dat$Week), labels = 1:max(dat$Week), 
+     las = 2, cex.axis = 0.9)
+legend("topright", 
+       legend = c("Strat 5: max", 
+                  "Strat 5: min", 
+                  "Random"),
+       col = my_colors, 
+       lty = 2, lwd = 3, bty = "n", cex = 0.7, inset = c(0.01, 0))
+```
+Using the highest expected return strategy (computed using P(outcome)*payout), we are also able to clear the $100 mark. Interestingly, with this strategy, draws are predicted around 37% of the time.
+
+6) strategic game selection: bet only on games where KL > k (k is some constant), then use one of the previous strategies to place bets
+```{r}
+strat_6 <- function(df,k,strat=2,stake=100,nsim=10000,even=F,plot=F)
+{
+  df <- df[df$KL >= k, ]
+  if (strat==1)
+  {
+    bets <- rep('H', nrow(df))
+  }
+  else if (strat==2 || strat==3)
+  {
+    bets <- apply(df, 1, function(row) 
+      {c("H", "D", "A")[which.max(row[c("pH", "pD", "pA")])][1]})
+  }
+  else if (strat==4)
+  {
+    bets <- apply(df, 1, function(row) 
+      {c("H", "D", "A")[which.min(row[c("pHDiff", "pDDiff", "pADiff")])][1]})
+  }
+  else if (strat==5)
+  {
+    bets <- apply(df, 1, function(row) 
+      {c("H", "D", "A")[which.max(row[c("EPH", "EPD", "EPA")])][1]})
+  }
+  
+  if (nrow(df)==0) {return(NA)}
+  
+  weights <- matrix(runif(nsim*nrow(df)), nrow = nsim, ncol = nrow(df))
+  weights <- weights/rowSums(weights)*stake
+  
+  return_mat <- matrix(NA, nsim, nrow(df))
+  # bet_mat <- ifelse(strat==0, matrix(NA, nsim, nrow(df)),
+  #                   matrix(rep(bets, nsim), nrow = nsim, byrow = T))
+  if (strat==0) {bet_mat <- matrix(NA, nsim, nrow(df))}
+  else {bet_mat <- matrix(rep(bets, nsim), nrow = nsim, byrow = T)}
+  
+  # if (random) { df[, c("pH", "pA", "pD")] <- 1/3 }
+  if (even) { weights <- matrix(stake/nrow(df), nrow = nsim, ncol = nrow(df))}
+  
+  for (j in 1:nrow(df))
+  {
+    winning_odds <- with(df, ifelse(FTR[j] == "H", B365H[j], 
+                                    ifelse(FTR[j] == "A", B365A[j], B365D[j])))
+    if (strat==0)
+    {
+      bet_mat[,j] <- sample(c("H","D","A"), prob = with(df[j,], c(pH, pD, pA)), 
+                            size = nsim, replace = T)
+    }
+    return_mat[,j] <- ifelse(bet_mat[,j]==df$FTR[j], winning_odds*weights[,j], 0)
+  }
+  
+  returns <- rowSums(return_mat)
+    
+  return(round(summary(returns), 2))
+}
+```
+
+```{r}
+strat_6(dat, k=0.01, strat=2, nsim=3e4)
+strat_6(dat, k=0.015, strat=2, nsim=3e4)
+strat_6(dat, k=0.02, strat=2, nsim=3e4)
+strat_6(dat, k=0.025, strat=2, nsim=3e4)
+strat_6(dat, k=0.03, strat=2, nsim=3e4)
+strat_6(dat, k=0.035, strat=2, nsim=3e4)
+strat_6(dat, k=0.04, strat=2, nsim=3e4)
+```
+
+```{r}
+returns <- replicate(5, rep(NA, max(dat$Week)), simplify = F)
+for (i in 1:max(dat$Week))
+{
+  returns[[1]][i] <- strat_6(dat[dat$Week == i, ], k=0.01, strat=2, nsim = 3e4)['Mean']
+  returns[[2]][i] <- strat_6(dat[dat$Week == i, ], k=0.02, strat=2, nsim = 3e4)['Mean']
+  returns[[3]][i] <- strat_6(dat[dat$Week == i, ], k=0.03, strat=2, nsim = 3e4)['Mean']
+  returns[[4]][i] <- strat_6(dat[dat$Week == i, ], k=0.04, strat=2, nsim = 3e4)['Mean']
+  returns[[5]][i] <- simulate_bets(dat[dat$Week == i, ], nsim = 3e4)['Mean']
+}
+
+my_colors <-c("red", "green", "purple", "orange", "blue")
+plot(1:max(dat$Week), returns[[1]], # ylim = c(80, 100),
+     ylim = c(0, max(do.call(c, returns[1:5]), na.rm = T)),
+     type = "o", col = my_colors[1], xlab = '', ylab = 'E[Return]',
+     lwd = 1.5, bty = "u", xaxt = 'n')
+for (i in 1:length(returns))
+{
+  if (i>=2) {lines(1:max(dat$Week), returns[[i]], 
+                   type = 'o', col = my_colors[i], lwd = 1.5)}
+  abline(h = mean(returns[[i]], na.rm = T), col = my_colors[i],
+         lwd = 1.5, lty = 2)
+}
+axis(1, at = 1:max(dat$Week), labels = 1:max(dat$Week), 
+     las = 2, cex.axis = 0.9)
+legend("topright", 
+       legend = c("Strat 6: k=0.01", 
+                  "Strat 6: k=0.02", 
+                  "Strat 6: k=0.03", 
+                  "Strat 6: k=0.04", 
+                  "Random"),
+       col = my_colors, 
+       lty = 2, lwd = 3, bty = "n", cex = 0.7, inset = c(0.1, 0))
+```
+
+Comparing each strategy with best parameters
+```{r}
+returns <- replicate(7, rep(NA, max(dat$Week)), simplify = F)
+for (i in 1:max(dat$Week))
+{
+  returns[[1]][i] <- strat_1(dat[dat$Week == i, ], 'H', nsim = 3e4)['Mean']
+  returns[[2]][i] <- strat_2(dat[dat$Week == i, ], type = 'prob', 
+                             k = 0.65, risk = 'safe', nsim = 3e4)['Mean']
+  returns[[3]][i] <- strat_3(dat[dat$Week == i, ], type = 'odds', 
+                             k = 100, risk = 'safe', nsim = 3e4)['Mean']
+  returns[[4]][i] <- strat_4(dat[dat$Week == i, ], type='S', nsim = 3e4)['Mean']
+  returns[[5]][i] <- strat_5(dat[dat$Week == i, ], type='S', nsim = 3e4)['Mean']
+  returns[[6]][i] <- strat_6(dat[dat$Week == i, ], k=0.035, strat=2, nsim = 3e4)['Mean']
+  returns[[7]][i] <- simulate_bets(dat[dat$Week == i, ], nsim = 3e4)['Mean']
+}
+
+my_colors <- c("darkgreen", "red", "darkorange", 
+               "darkviolet", "darkcyan", "magenta", "blue")
+plot(1:max(dat$Week), returns[[1]], # ylim = c(80, 120),
+     ylim = c(0, max(do.call(c, returns[1:7]), na.rm = T)),
+     type = "o", col = my_colors[1], xlab = '', ylab = 'E[Return]',
+     lwd = 2, bty = "u", xaxt = 'n')
+for (i in 1:length(returns))
+{
+  if (i>=2) {lines(1:max(dat$Week), returns[[i]], 
+                   type = 'o', col = my_colors[i], lwd = 2)}
+  abline(h = mean(returns[[i]], na.rm = T), col = my_colors[i],
+         lwd = 1.5, lty = 2)
+  print(mean(returns[[i]], na.rm = T))
+}
+axis(1, at = 1:max(dat$Week), labels = 1:max(dat$Week), 
+     las = 2, cex.axis = 0.9)
+legend("topright", 
+       legend <- c(paste0("Strat ", 1:6), "Random"),
+       col = my_colors, horiz = T,
+       lty = 2, lwd = 3, bty = "n", cex = 0.7, inset = c(0, 0))
+```
+Setting parameters might be very specific to this season's data. There are changes to rules, for example, longer added time to this season's games. We will need to investigate if the strategies hold for any previous seasons.
+
+Due to the inconsistency, we need to use a one-sided t-test on the simulation results to see whether we will get a return that is greater than $100 on average.
+
+Compute standard error for each strategy
+1) test if we can consistently get more than $100 for the entire season
+```{r}
+nsim <- 200
+returns <- replicate(7, rep(NA, nsim), simplify = F)
+for (i in 1:nsim)
+{
+  returns[[1]][i] <- strat_1(dat, 'H', nsim = 1)['Mean']
+  returns[[2]][i] <- strat_2(dat, type = 'prob',k = 0.65, risk = 'safe', nsim = 1)['Mean']
+  returns[[3]][i] <- strat_3(dat, type = 'odds', k = 100, risk = 'safe', nsim = 1)['Mean']
+  returns[[4]][i] <- strat_4(dat, type='S', nsim = 1)['Mean']
+  returns[[5]][i] <- strat_5(dat, type='S', nsim = 1)['Mean']
+  returns[[6]][i] <- strat_6(dat, k=0.035, strat=2, nsim = 1)['Mean']
+  returns[[7]][i] <- simulate_bets(dat, nsim = 1)['Mean']
+}
+```
+```{r}
+lapply(returns, function(x) t.test(x, mu = 100, alternative = "greater")$p.value)
+```
+
+2) test if we can consistently get more than $100 every week
+```{r}
+nsim <- 500
+weeks_sim <- sample(1:max(dat$Week), nsim, replace = T)
+returns <- replicate(7, rep(NA, nsim), simplify = F)
+for (i in 1:nsim)
+{
+  returns[[1]][i] <- strat_1(dat[dat$Week == weeks_sim[i], ], 'H', nsim = 1)['Mean']
+  returns[[2]][i] <- strat_2(dat[dat$Week == weeks_sim[i], ], type = 'prob', 
+                             k = 0.65, risk = 'safe', nsim = 1)['Mean']
+  returns[[3]][i] <- strat_3(dat[dat$Week == weeks_sim[i], ], type = 'odds', 
+                             k = 100, risk = 'safe', nsim = 1)['Mean']
+  returns[[4]][i] <- strat_4(dat[dat$Week == weeks_sim[i], ], type='S', nsim = 1)['Mean']
+  returns[[5]][i] <- strat_5(dat[dat$Week == weeks_sim[i], ], type='S', nsim = 1)['Mean']
+  returns[[6]][i] <- strat_6(dat[dat$Week == weeks_sim[i], ], k=0.035, strat=2,
+                             nsim = 1)['Mean']
+  returns[[7]][i] <- simulate_bets(dat[dat$Week == weeks_sim[i], ], nsim = 1)['Mean']
+}
+```
+```{r}
+lapply(returns, function(x) t.test(x, mu = 100, alternative = "greater")$p.value)
+```
+```{r}
+lapply(returns, function(x) summary(na.omit(x)))
+```
+However, is one-sided t-test appropriate here?
+```{r}
+lapply(returns, function(x) mean(x>=100, na.rm=T))
+```
+```{r}
+x <- c(rep(1000, 5), rep(99,95))
+t.test(x, mu = 100, alternative = "greater")
+
+y <- c(rep(0, 5), rep(101,95)) # similarly
+t.test(y, mu = 100, alternative = "greater")
+```
+
+Use multivariate analysis to analyze bookmakers
+    - b365: "Bet365"
+    - bw: "Betway" (2 NAs)
+    - iw: "Interwetten" (70 NAs)
+    - ps: "Pinnacle Sports"
+    - wh: "William Hill"
+    - vc: "BetVictor"
+```{r}
+bets <- fread('Betting Odds/E0 (2023-24).csv')
+bets_new <- data.frame(
+  oddsH = with(data = bets, c(B365H, BWH, PSH, WHH, VCH)),
+  oddsD = with(data = bets, c(B365D, BWD, PSD, WHD, VCD)),
+  oddsA = with(data = bets, c(B365A, BWA, PSA, WHA, VCA)),
+  bm = rep(c("B365", "BW", "PS", "WH", "VC"), each = nrow(bets))) 
+# bets_new <- bets_new[bets_new$bm %in% c("B365", "VC"), ]
+summary(manova(cbind(oddsH, oddsD, oddsA) ~ bm, data = bets_new))
+anova(lm(oddsH ~ bm, data = bets_new))
+anova(lm(oddsD ~ bm, data = bets_new))
+anova(lm(oddsA ~ bm, data = bets_new))
+```
+Observation: differences across bookmakers are mainly due to odds for draws
+
+
+Odds-converted prob vs Opta predicted prob
+```{r}
+plot(dat$pH, dat$pSumOdds/dat$B365H, pch = 19, cex = 1.2, 
+     col = "green", bty = "u",
+     xlim = c(0,.9), ylim = c(0, 1),
+     xlab = "Opta", ylab = "B365")
+points(dat$pD, dat$pSumOdds/dat$B365D, pch = 17, cex = 1.2, col = "gray")
+points(dat$pA, dat$pSumOdds/dat$B365A, pch = 10, cex = 1.2, col = "red")
+abline(lm(pSumOdds/B365H~pH, data = dat), lty = 2, lwd = 2, col = "green")
+abline(lm(pSumOdds/B365D~pD, data = dat), lty = 2, lwd = 2, col = "gray")
+abline(lm(pSumOdds/B365A~pA, data = dat), lty = 2, lwd = 2, col = "red")
+legend("bottomright", bty = "n",
+       legend = c("H", "D", "A"),
+       lwd = 1.5, 
+       pch = c(19, 17, 10),
+       inset = c(0.1, 0.1), cex = 0.9,
+       col = c("green", "gray", "red"))
+
+# residual plots
+plot(dat$pH, resid(lm(pSumOdds/B365H~pH, data = dat)), pch = 19, cex = 1.2, 
+     col = "green", bty = "u",
+     xlim = c(0,.9), ylim = c(-0.25, 0.25),
+     xlab = "Opta", ylab = "resid(B365~Opta)")
+points(dat$pD, resid(lm(pSumOdds/B365D~pD, data = dat)), pch = 17, cex = 1.2, col = "gray")
+points(dat$pA, resid(lm(pSumOdds/B365A~pA, data = dat)), pch = 10, cex = 1.2, col = "red")
+abline(h=0, lty = 2, lwd = 2)
+legend("topright", bty = "n",
+       legend = c("H", "D", "A"),
+       lwd = 1.5, 
+       pch = c(19, 17, 10),
+       inset = c(0.05, 0.05), cex = 0.9,
+       col = c("green", "gray", "red"))
+```
+
+Risk-free returns (idea of placing bets in separate bookmakers on all outcomes)
+```{r}
+bets$pSumOddsMax <- with(data = bets, 1/MaxH+1/MaxD+1/MaxA)
+mean(bets$pSumOddsMax<1)
+mean(bets$pSumOddsMax<0.99)
+mean(bets$pSumOddsMax<0.98)
+mean(bets$pSumOddsMax<0.97)
+```
+
+[How I used maths to beat the bookies](https://www.economist.com/1843/2016/06/08/how-i-used-maths-to-beat-the-bookies)
+"You need to do the odds-to-probability calculation every single time you place a bet. Before you part with your money, assign probabilities to each potential outcome and compare these with the odds. Only bet if the probability you assign to an outcome is higher than the bookmakers' implied probability."
+
+
+arbitrage bets: bet on two highest/lowest probability outcomes of each game
+```{r}
+# opta_prob <- dat[,.(pH,pD,pA)]
+bm_odds <- as.matrix(dat[,.(B365H,B365D,B365A)])
+bm_prob <- 1/bm_odds
+nsim <- 5e4
+
+weight_idx_min <- t(apply(bm_prob, 1, function(row) {row[which.max(row)] <- 0
+                                                     row[row!=0] <- 1
+                                                     return (row)}))
+weight_idx_max <- t(apply(bm_prob, 1, function(row) {row[which.min(row)] <- 0
+                                                     row[row!=0] <- 1
+                                                     return (row)}))
+weights_min <- as.matrix(weight_idx_min*bm_prob)
+weights_max <- as.matrix(weight_idx_max*bm_prob)
+weight_mat_min <- sweep(weights_min, 1, rowSums(weights_min), "/")
+weight_mat_max <- sweep(weights_max, 1, rowSums(weights_max), "/")
+
+result_idx <- as.numeric(c("H" = 1, "D" = 2, "A" = 3)[dat$FTR])
+# result_mat <- replicate(3, rep(0,nrow(dat)))
+# for (i in 1:nrow(result_mat))
+# {
+#   result_mat[i, result_idx[i]] <- 1
+# }
+result_mat <- replicate(3, rep(0,nrow(dat)))
+idx <- matrix(c(1:nrow(dat), result_idx), ncol = 2)
+result_mat[idx] <- 1
+```
+
+arbitrage: two min
+```{r}
+sum(bm_odds*weight_mat_min*result_mat)/nrow(dat)
+```
+arbitrage: two max
+```{r}
+sum(bm_odds*weight_mat_max*result_mat)/nrow(dat)
+```
