@@ -13,9 +13,9 @@ The project is structured into three main components, each playing a pivotal rol
 
    ![Histogram of Random Simulation Results](https://github.com/mic-cao/EPL-Betting-Strategies/blob/main/plots/plot1.png)
    
-   <div style="text-align: center;">
-   <img src="https://github.com/mic-cao/EPL-Betting-Strategies/blob/main/plots/plot1.png" alt="Histogram of Random Simulation Results" width="600">
-   </div>
+   <p align="center">
+   <img src="https://github.com/mic-cao/EPL-Betting-Strategies/blob/main/plots/plot1.png" alt="Histogram of Random Simulation Results" width="400">
+   </p>
 
    The histogram above illustrates the results of a random simulation, emphasizing the challenges posed by bookmakers' vigorish on potential profits over the course of a season. This serves as motivation to develop robust betting strategies.
 
