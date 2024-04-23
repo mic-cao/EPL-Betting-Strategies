@@ -12,16 +12,17 @@ The project is structured into three main components, each playing a pivotal rol
 1. **EPL Prediction:** This phase encompasses the construction of predictive models using advanced machine learning algorithms. Leveraging features such as team performance metrics, historical match data, and contextual factors, we aim to forecast match outcomes with high accuracy.
 
    ![Histogram of Random Simulation Results](https://github.com/mic-cao/EPL-Betting-Strategies/blob/main/plots/plot1.png)
+   <img src="https://github.com/mic-cao/EPL-Betting-Strategies/blob/main/plots/plot1.png" alt="Histogram of Random Simulation Results" width="400" align="center">
 
    The histogram above illustrates the results of a random simulation, emphasizing the challenges posed by bookmakers' vigorish on potential profits over the course of a season. This serves as motivation to develop robust betting strategies.
 
-2. **EPL Betting:** Here, we dive into the realm of betting strategies, analyzing historical data and exploring various betting markets. Through rigorous experimentation and analysis, we aim to identify strategies that yield consistent profits over time, considering factors such as odds, market trends, and risk management.
+3. **EPL Betting:** Here, we dive into the realm of betting strategies, analyzing historical data and exploring various betting markets. Through rigorous experimentation and analysis, we aim to identify strategies that yield consistent profits over time, considering factors such as odds, market trends, and risk management.
 
    ![Simulation Results](https://github.com/mic-cao/EPL-Betting-Strategies/blob/main/plots/plot3.png)
 
    The 3D plot above showcases the theoretical probabilities of home win, draw, and away win, simulated using a Dirichlet distribution. Understanding these probabilities is crucial for formulating effective betting strategies.
 
-3. **Bets Optimization:** In this stage, we employ optimization techniques to enhance our betting strategies further. By formulating linear programming (LP) problems and conducting theoretical analyses, we aim to optimize betting weights to maximize expected profits while effectively managing risks. Theoretical demonstrations include uncovering biases in Opta’s predictions through maximum likelihood estimation and Dirichlet distribution analysis.
+4. **Bets Optimization:** In this stage, we employ optimization techniques to enhance our betting strategies further. By formulating linear programming (LP) problems and conducting theoretical analyses, we aim to optimize betting weights to maximize expected profits while effectively managing risks. Theoretical demonstrations include uncovering biases in Opta’s predictions through maximum likelihood estimation and Dirichlet distribution analysis.
 
    ![3D Plot of Theoretical Probabilities](https://github.com/mic-cao/EPL-Betting-Strategies/blob/main/plots/plot2.png)
 
