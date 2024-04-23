@@ -25,7 +25,7 @@ The project is structured into three main components, each playing a pivotal rol
 
    The plot shows the mean return on a $100 weekly bets over the first 30 weeks of the 2023-24 season, following a few simple betting strategies.
 
-5. **Bets Optimization:** In this stage, we employ optimization techniques to enhance our betting strategies further. By formulating linear programming (LP) problems and conducting theoretical analyses, we aim to optimize betting weights to maximize expected profits while effectively managing risks. Theoretical demonstrations include uncovering biases in Opta’s predictions through maximum likelihood estimation and Dirichlet distribution analysis.
+5. **Bets Optimization:** In this stage, we employ optimization techniques to enhance our betting strategies further. By formulating linear programming (LP) problems and conducting theoretical analyses, we aim to optimize betting weights to maximize expected profits while effectively managing risks. Theoretical demonstrations include uncovering biases in Opta’s predictions through maximum likelihood estimation.
 
    <p align="center">
    <img src="https://github.com/mic-cao/EPL-Betting-Strategies/blob/main/plots/plot2.png" alt="3D Plot of Theoretical Probabilities" width="450">
