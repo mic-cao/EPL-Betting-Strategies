@@ -13,7 +13,7 @@ The project is divided into three main components, each serving a crucial role i
 
 2. **EPL Betting:** Here, we delve into the world of betting strategies, investigating different approaches to maximize profits. We analyze historical data, assess various betting markets, and experiment with different staking plans to identify strategies with consistent returns.
 
-3. **Bets Optimization:** In this stage, optimization techniques are employed to enhance our betting strategies further. By formulating linear programming (LP) problems, we aim to optimize betting weights, considering factors such as risk tolerance, odds, and expected returns.
+3. **Bets Optimization:** In this stage, optimization techniques are employed to enhance our betting strategies further. By formulating linear programming (LP) problems and theoretical analysis, we aim to optimize betting weights, considering factors such as risk tolerance, odds, and expected returns. Theoretical demonstrations include the presence of bias in Opta’s predictions through maximum likelihood estimation and Dirichlet distribution analysis.
 
 ## Key Features
 - **Data Acquisition:** Historical odds and match data are obtained from reliable sources, such as football-data.co.uk and Opta predictions. We meticulously clean and preprocess the data to ensure accuracy and reliability in our analysis.
@@ -32,4 +32,3 @@ The project is divided into three main components, each serving a crucial role i
 - Required R packages: `lpSolve`, `plotly`, `gtools`, `data.table`
 
 ## Pending Publication
-A paper based on the research findings is pending publication. Stay tuned for updates!
