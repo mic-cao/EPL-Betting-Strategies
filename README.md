@@ -32,3 +32,4 @@ The project is divided into three main components, each serving a crucial role i
 - Required R packages: `lpSolve`, `plotly`, `gtools`, `data.table`
 
 ## Pending Publication
+A paper based on the research findings is pending publication. Stay tuned for updates!
