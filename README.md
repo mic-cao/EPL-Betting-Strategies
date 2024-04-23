@@ -31,7 +31,7 @@ The project is structured into three main components, each playing a pivotal rol
    <img src="https://github.com/mic-cao/EPL-Betting-Strategies/blob/main/plots/plot2.png" alt="3D Plot of Theoretical Probabilities" width="450">
    </p>
 
-   The 3D plot above showcases the theoretical probabilities of home win, draw, and away win, simulated using a Dirichlet distribution. Understanding these probabilities is crucial for formulating effective betting strategies.
+   The 3D plot above showcases the theoretical probabilities of home win, draw, and away win, simulated using a Dirichlet distribution. Understanding how these probabilities are distributed is crucial for formulating effective betting strategies.
 
 ## Key Features
 - **Data Acquisition:** We procure historical odds and match data from reliable sources such as football-data.co.uk and Opta predictions. Rigorous data preprocessing ensures accuracy and reliability in our analysis.
