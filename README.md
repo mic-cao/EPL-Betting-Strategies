@@ -15,7 +15,7 @@ The project is structured into three main components, each playing a pivotal rol
    <img src="https://github.com/mic-cao/EPL-Betting-Strategies/blob/main/plots/plot1.png" alt="Histogram of Random Simulation Results" width="620">
    </p>
 
-   The histogram above illustrates the results of a random simulation, emphasizing the challenges posed by bookmakers' vigorish on potential profits over the course of a season. This serves as motivation to develop robust betting strategies.
+   The histogram above illustrates the results of a random simulation using games on week 26, emphasizing the challenges posed by bookmakers' vigorish on potential profits over the course of a season. Similar distribution is true for most matchweeks. This serves as motivation to develop robust betting strategies.
 
 3. **EPL Betting:** Here, we dive into the realm of betting strategies, analyzing historical data and exploring various betting markets. Through rigorous experimentation and analysis, we aim to identify strategies that yield consistent profits over time, considering factors such as odds, market trends, and risk management.
 
