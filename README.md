@@ -12,7 +12,7 @@ The project is structured into three main components, each playing a pivotal rol
 1. **EPL Prediction:** This phase encompasses the construction of predictive models using advanced machine learning algorithms. Leveraging features such as team performance metrics, historical match data, and contextual factors, we aim to forecast match outcomes with high accuracy.
    
    <p align="center">
-   <img src="https://github.com/mic-cao/EPL-Betting-Strategies/blob/main/plots/plot1.png" alt="Histogram of Random Simulation Results" width="600">
+   <img src="https://github.com/mic-cao/EPL-Betting-Strategies/blob/main/plots/plot1.png" alt="Histogram of Random Simulation Results" width="620">
    </p>
 
    The histogram above illustrates the results of a random simulation, emphasizing the challenges posed by bookmakers' vigorish on potential profits over the course of a season. This serves as motivation to develop robust betting strategies.
@@ -23,7 +23,7 @@ The project is structured into three main components, each playing a pivotal rol
    <img src="https://github.com/mic-cao/EPL-Betting-Strategies/blob/main/plots/plot3.png" alt="Simulation Results" width="750">
    </p>
 
-   Here are the results of simulations for a few betting strategies conducted over the first 30 weeks of the EPL season 2023-24.
+   The plot shows the mean return on a $100 weekly bets over the first 30 weeks of the EPL season 2023-24, following a few simple betting strategies.
 
 5. **Bets Optimization:** In this stage, we employ optimization techniques to enhance our betting strategies further. By formulating linear programming (LP) problems and conducting theoretical analyses, we aim to optimize betting weights to maximize expected profits while effectively managing risks. Theoretical demonstrations include uncovering biases in Opta’s predictions through maximum likelihood estimation and Dirichlet distribution analysis.
 
