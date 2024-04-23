@@ -20,7 +20,7 @@ The project is structured into three main components, each playing a pivotal rol
 3. **EPL Betting:** Here, we dive into the realm of betting strategies, analyzing historical data and exploring various betting markets. Through rigorous experimentation and analysis, we aim to identify strategies that yield consistent profits over time, considering factors such as odds, market trends, and risk management.
 
    <p align="center">
-   <img src="https://github.com/mic-cao/EPL-Betting-Strategies/blob/main/plots/plot3.png" alt="Simulation Results" width="650">
+   <img src="https://github.com/mic-cao/EPL-Betting-Strategies/blob/main/plots/plot3.png" alt="Simulation Results" width="750">
    </p>
 
    The 3D plot above showcases the theoretical probabilities of home win, draw, and away win, simulated using a Dirichlet distribution. Understanding these probabilities is crucial for formulating effective betting strategies.
@@ -28,7 +28,7 @@ The project is structured into three main components, each playing a pivotal rol
 5. **Bets Optimization:** In this stage, we employ optimization techniques to enhance our betting strategies further. By formulating linear programming (LP) problems and conducting theoretical analyses, we aim to optimize betting weights to maximize expected profits while effectively managing risks. Theoretical demonstrations include uncovering biases in Opta’s predictions through maximum likelihood estimation and Dirichlet distribution analysis.
 
    <p align="center">
-   <img src="https://github.com/mic-cao/EPL-Betting-Strategies/blob/main/plots/plot2.png" alt="3D Plot of Theoretical Probabilities" width="650">
+   <img src="https://github.com/mic-cao/EPL-Betting-Strategies/blob/main/plots/plot2.png" alt="3D Plot of Theoretical Probabilities" width="450">
    </p>
 
    Here are the results of simulations for various betting strategies conducted over the first 30 weeks of the EPL season 2023-24.
