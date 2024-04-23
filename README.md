@@ -4,7 +4,7 @@
 
 **Status:** In Progress
 
-This repository contains the code and research findings for an ongoing project focused on developing effective betting strategies for English Premier League (EPL) games. Supervised by a Dr. Jim Booth, the research involves extensive simulations and predictive modeling to explore profitable betting opportunities in soccer.
+This repository contains the code and research findings for an ongoing project focused on developing effective betting strategies for English Premier League (EPL) games. Supervised by a Dr. Booth, the research involves extensive simulations and predictive modeling to explore profitable betting opportunities in soccer.
 
 ## Overview
 The project is divided into three main components, each serving a crucial role in the development and evaluation of EPL betting strategies:
