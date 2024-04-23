@@ -23,9 +23,9 @@ The project is divided into three main components, each serving a crucial role i
 - **Statistical Analysis:** We conduct thorough statistical analysis to identify patterns, trends, and biases in the data. Techniques such as maximum likelihood estimation and Dirichlet distribution analysis are employed to gain insights into the underlying dynamics of EPL matches.
 
 ## Usage
-1. **EPL Prediction:** Run the `epl_prediction.R` script to build and evaluate predictive models. This script generates insights into match outcomes and provides probabilities for different events.
-2. **EPL Betting:** Execute the `epl_betting.R` script to explore various betting strategies and analyze their performance. This script helps in identifying profitable betting opportunities and assessing the effectiveness of different staking plans.
-3. **Bets Optimization:** Utilize the `bets_optimization.R` script to formulate and solve LP problems for optimizing betting weights. This script aids in maximizing expected profits while considering factors such as risk tolerance and market conditions.
+1. **EPL Prediction:** Run the `epl_prediction.Rmd` script to build and evaluate predictive models. This script generates insights into match outcomes and provides probabilities for different events.
+2. **EPL Betting:** Execute the `epl_betting.Rmd` script to explore various betting strategies and analyze their performance. This script helps in identifying profitable betting opportunities and assessing the effectiveness of different staking plans.
+3. **Bets Optimization:** Utilize the `bets_optimization.Rmd` script to formulate and solve LP problems for optimizing betting weights. This script aids in maximizing expected profits while considering factors such as risk tolerance and market conditions.
 
 ## Requirements
 - R programming language
