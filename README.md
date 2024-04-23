@@ -15,7 +15,7 @@ The project is structured into three main components, each playing a pivotal rol
    <img src="https://github.com/mic-cao/EPL-Betting-Strategies/blob/main/plots/plot1.png" alt="Histogram of Random Simulation Results" width="620">
    </p>
 
-   The histogram above illustrates the results of a random simulation using games on week 26, emphasizing the challenges posed by bookmakers' vigorish on potential profits over the course of a season. Similar distribution is true for most matchweeks. This serves as motivation to develop robust betting strategies.
+   The histogram above illustrates the results of a random simulation using games on week 26 of the 2023-24 season, emphasizing the challenges posed by bookmakers' vigorish on potential profits over the course of a season. Similar distribution is true for most matchweeks. This serves as motivation to develop robust betting strategies.
 
 3. **EPL Betting:** Here, we dive into the realm of betting strategies, analyzing historical data and exploring various betting markets. Through rigorous experimentation and analysis, we aim to identify strategies that yield consistent profits over time, considering factors such as odds, market trends, and risk management.
 
@@ -23,7 +23,7 @@ The project is structured into three main components, each playing a pivotal rol
    <img src="https://github.com/mic-cao/EPL-Betting-Strategies/blob/main/plots/plot3.png" alt="Simulation Results" width="750">
    </p>
 
-   The plot shows the mean return on a $100 weekly bets over the first 30 weeks of the EPL season 2023-24, following a few simple betting strategies.
+   The plot shows the mean return on a $100 weekly bets over the first 30 weeks of the 2023-24 season, following a few simple betting strategies.
 
 5. **Bets Optimization:** In this stage, we employ optimization techniques to enhance our betting strategies further. By formulating linear programming (LP) problems and conducting theoretical analyses, we aim to optimize betting weights to maximize expected profits while effectively managing risks. Theoretical demonstrations include uncovering biases in Opta’s predictions through maximum likelihood estimation and Dirichlet distribution analysis.
 
