@@ -1,6 +1,6 @@
 # Directed Research: EPL Betting Strategies
 **Author:** Michael Cao  
-**Advisor:** Dr. Jim Booth, Cornell University
+**Advisor:** Dr. James Booth, Cornell University
 
 **Status:** In Progress
 
@@ -12,7 +12,7 @@ The project is structured into three main components, each playing a pivotal rol
 1. **EPL Prediction:** This phase encompasses the construction of predictive models using advanced machine learning algorithms. Leveraging features such as team performance metrics, historical match data, and contextual factors, we aim to forecast match outcomes with high accuracy.
    
    <p align="center">
-   <img src="https://github.com/mic-cao/EPL-Betting-Strategies/blob/main/plots/plot1.png" alt="Histogram of Random Simulation Results" width="650">
+   <img src="https://github.com/mic-cao/EPL-Betting-Strategies/blob/main/plots/plot1.png" alt="Histogram of Random Simulation Results" width="600">
    </p>
 
    The histogram above illustrates the results of a random simulation, emphasizing the challenges posed by bookmakers' vigorish on potential profits over the course of a season. This serves as motivation to develop robust betting strategies.
