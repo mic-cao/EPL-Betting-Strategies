@@ -7,7 +7,7 @@
 This repository contains the code and research findings for an ongoing research project focused on developing effective betting strategies for English Premier League (EPL) games. Supervised by Dr. Booth, the research involves extensive simulations and predictive modeling to explore profitable betting opportunities in soccer.
 
 ## Overview
-The project is structured into three main components, each playing a pivotal role in developing and evaluating EPL betting strategies:
+The project is structured into three main components, each playing a pivotal role in developing and evaluating EPL betting strategies. Below are snapshots to a part of each component:
 
 1. **EPL Prediction:** This phase encompasses the construction of predictive models using advanced machine learning algorithms. Leveraging features such as team performance metrics, historical match data, and contextual factors, we aim to forecast match outcomes with high accuracy.
    
