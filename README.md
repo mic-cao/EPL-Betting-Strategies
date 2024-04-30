@@ -9,7 +9,7 @@ This repository contains the code and research findings for an ongoing research 
 ## Overview
 The project is structured into three main components, each playing a pivotal role in developing and evaluating EPL betting strategies. Below are snapshots to a part of each component:
 
-1. **EPL Prediction:** This phase encompasses the construction of predictive models using advanced machine learning algorithms. Leveraging features such as team performance metrics, historical match data, and contextual factors, we aim to forecast match outcomes with high accuracy.
+1. **EPL Prediction:** Building off a previous class project where I constructed a classification algorithm using a variation of Bradley-Terry model, this phase encompasses the building of additional predictive models using advanced machine learning algorithms. Leveraging features such as team performance metrics, historical match data, and contextual factors, we aim to forecast match outcomes with high accuracy.
    
    <p align="center">
    <img src="https://github.com/mic-cao/EPL-Betting-Strategies/blob/main/plots/plot1.png" alt="Histogram of Random Simulation Results" width="620">
