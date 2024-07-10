@@ -2,8 +2,6 @@
 **Author:** Michael Cao  
 **Advisor:** Dr. James Booth, Cornell University
 
-**Status:** In Progress
-
 This repository contains the code and research findings for an ongoing research project focused on developing effective betting strategies for English Premier League (EPL) games. Supervised by Dr. Booth, the research involves extensive simulations and predictive modeling to explore profitable betting opportunities in soccer.
 
 ## Overview
